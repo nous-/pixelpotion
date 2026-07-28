@@ -21,9 +21,9 @@
 		} catch {
 			// Bad save - fall through to the default.
 		}
-		// First visit: the moving rainbow, instant wow with only 3 steps.
+		// First visit: Rainbow slide — moving color with only 3 steps.
 		return migrateProgram(
-			structuredClone(families.find((f) => f.name === 'Rainbows').tiers[1].program)
+			structuredClone(families.find((f) => f.name === 'Rainbow').tiers.find((t) => t.label === 'slide').program)
 		);
 	}
 
@@ -649,7 +649,12 @@
 					</button>
 				</div>
 				<div class="flex flex-col gap-2">
-					{#each families as family (family.name)}
+					{#each families as family, fi (family.name)}
+						{#if family.section === 'gallery' && families[fi - 1]?.section !== 'gallery'}
+							<h3 class="mt-3 mb-0.5 text-xs font-bold tracking-widest text-slate-400 uppercase">
+								Gallery
+							</h3>
+						{/if}
 						<div class="flex items-center gap-2 rounded-2xl bg-indigo-50/60 px-3 py-2">
 							<span class="w-24 shrink-0 text-sm font-black text-slate-600">
 								{family.name}
