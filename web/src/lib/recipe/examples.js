@@ -848,13 +848,13 @@ const warpGamma = [
 
 export const families = [
 	{
-		name: 'First steps',
+		name: 'Pulse',
 		dim: 'basics',
 		tiers: [
 			{
 				label: 'small',
 				program: {
-					steps: [{ id: 'a', name: 'bright', op: 'just', args: { A: inp('x') } }],
+					steps: [{ id: 'a', name: 'glow', op: 'wave', args: { N: inp('time') } }],
 					color: ref('a')
 				}
 			},
@@ -862,17 +862,28 @@ export const families = [
 				label: 'medium',
 				program: {
 					steps: [
-						{ id: 'a', name: 'paint', op: 'rgb', args: { R: inp('x'), G: inp('y'), B: num(0.5) } }
+						{ id: 'a', name: 'glow', op: 'wave', args: { N: inp('time') } },
+						{
+							id: 'b',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0f172a'), B: col('#f97316'), T: ref('a') }
+						}
 					],
-					color: ref('a')
+					color: ref('b')
 				}
 			},
 			{
 				label: 'big',
 				program: {
 					steps: [
-						{ id: 'a', name: 'blink', op: 'wave', args: { N: inp('time') } },
-						{ id: 'b', name: 'paint', op: 'rgb', args: { R: inp('x'), G: inp('y'), B: ref('a') } }
+						{ id: 'a', name: 'glow', op: 'wave', args: { N: inp('time') } },
+						{
+							id: 'b',
+							name: 'paint',
+							op: 'rgb',
+							args: { R: inp('x'), G: inp('y'), B: ref('a') }
+						}
 					],
 					color: ref('b')
 				}
@@ -905,16 +916,15 @@ export const families = [
 				label: 'big',
 				program: {
 					steps: [
-						{ id: 'a', name: 'updown', op: 'mul', args: { A: inp('y'), B: num(2) } },
-						{ id: 'b', name: 'drift', op: 'add', args: { A: ref('a'), B: inp('time') } },
-						{ id: 'c', name: 'wob', op: 'wave', args: { N: ref('b') } },
-						{ id: 'd', name: 'bend', op: 'mul', args: { A: ref('c'), B: num(0.3) } },
-						{ id: 'e', name: 'slide', op: 'mul', args: { A: inp('time'), B: num(0.2) } },
-						{ id: 'f', name: 'where', op: 'add', args: { A: inp('x'), B: ref('e') } },
-						{ id: 'g', name: 'wavy', op: 'add', args: { A: ref('f'), B: ref('d') } },
-						{ id: 'h', name: 'paint', op: 'rainbow', args: { N: ref('g') } }
+						{ id: 'a', name: 'slide', op: 'mul', args: { A: inp('time'), B: num(0.2) } },
+						{ id: 'b', name: 'where', op: 'add', args: { A: inp('x'), B: ref('a') } },
+						{ id: 'c', name: 'drift', op: 'add', args: { A: inp('y'), B: inp('time') } },
+						{ id: 'd', name: 'wob', op: 'wave', args: { N: ref('c') } },
+						{ id: 'e', name: 'bend', op: 'mul', args: { A: ref('d'), B: num(0.25) } },
+						{ id: 'f', name: 'wavy', op: 'add', args: { A: ref('b'), B: ref('e') } },
+						{ id: 'g', name: 'paint', op: 'rainbow', args: { N: ref('f') } }
 					],
-					color: ref('h')
+					color: ref('g')
 				}
 			}
 		]
@@ -929,7 +939,12 @@ export const families = [
 					steps: [
 						{ id: 'a', name: 'bars', op: 'mul', args: { A: inp('x'), B: num(6) } },
 						{ id: 'b', name: 'stripes', op: 'wave', args: { N: ref('a') } },
-						{ id: 'c', name: 'paint', op: 'mix', args: { A: col('#1e293b'), B: col('#fbbf24'), T: ref('b') } }
+						{
+							id: 'c',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#1e293b'), B: col('#fbbf24'), T: ref('b') }
+						}
 					],
 					color: ref('c')
 				}
@@ -943,7 +958,12 @@ export const families = [
 						{ id: 'c', name: 'rows', op: 'mul', args: { A: inp('y'), B: num(6) } },
 						{ id: 'd', name: 'up', op: 'wave', args: { N: ref('c') } },
 						{ id: 'e', name: 'checks', op: 'mul', args: { A: ref('b'), B: ref('d') } },
-						{ id: 'f', name: 'paint', op: 'mix', args: { A: col('#312e81'), B: col('#f472b6'), T: ref('e') } }
+						{
+							id: 'f',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#312e81'), B: col('#f472b6'), T: ref('e') }
+						}
 					],
 					color: ref('f')
 				}
@@ -960,13 +980,14 @@ export const families = [
 						{ id: 'f', name: 'climb', op: 'add', args: { A: ref('d'), B: ref('e') } },
 						{ id: 'g', name: 'up', op: 'wave', args: { N: ref('f') } },
 						{ id: 'h', name: 'checks', op: 'mul', args: { A: ref('c'), B: ref('g') } },
-						{ id: 'i', name: 'corner', op: 'add', args: { A: inp('x'), B: inp('y') } },
-						{ id: 'j', name: 'shift', op: 'mul', args: { A: inp('time'), B: num(0.3) } },
-						{ id: 'k', name: 'hue', op: 'add', args: { A: ref('i'), B: ref('j') } },
-						{ id: 'l', name: 'colors', op: 'rainbow', args: { N: ref('k') } },
-						{ id: 'm', name: 'paint', op: 'mix', args: { A: col('#0f0f23'), B: ref('l'), T: ref('h') } }
+						{
+							id: 'i',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0f0f23'), B: col('#22d3ee'), T: ref('h') }
+						}
 					],
-					color: ref('m')
+					color: ref('i')
 				}
 			}
 		]
@@ -2094,7 +2115,7 @@ export const families = [
 	}
 ];
 
-/** "Start fresh": one pulsing step so the screen is alive right away. */
+/** "Start fresh": Pulse small — one wave of time so the screen is alive. */
 export const freshProgram = {
 	steps: [{ id: 'a', name: 'glow', op: 'wave', args: { N: inp('time') } }],
 	color: ref('a')
