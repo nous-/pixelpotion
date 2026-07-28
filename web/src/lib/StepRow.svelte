@@ -7,6 +7,8 @@
 	let {
 		step = $bindable(),
 		available = [],
+		funcs = [],
+		params = [],
 		source,
 		canUp = false,
 		canDown = false,
@@ -16,7 +18,21 @@
 		onselect
 	} = $props();
 
-	const op = $derived(opById(step.op));
+	// Library calls build their parts from the function's params; deleted
+	// functions show as '?' but keep the step around.
+	const op = $derived.by(() => {
+		if (step.op?.startsWith('fn:')) {
+			const func = funcs.find((f) => f.id === step.op.slice(3));
+			if (!func) return { id: step.op, parts: [{ op: '?' }] };
+			const parts = [{ op: func.name || 'function' }];
+			func.params.forEach((p, i) => {
+				if (i) parts.push({ text: ',' });
+				parts.push({ slot: p.id });
+			});
+			return { id: step.op, parts };
+		}
+		return opById(step.op);
+	});
 
 	// Selected row glows strongest; the steps it's built from fade out the
 	// further back the chain goes.
@@ -34,7 +50,7 @@
 
 	function setOp(id) {
 		step.op = id;
-		ensureArgs(step);
+		ensureArgs(step, funcs);
 	}
 </script>
 
@@ -59,13 +75,14 @@
 	<div class="flex flex-1 flex-wrap items-center gap-1.5">
 		{#each op.parts as part, i (i)}
 			{#if part.op}
-				<OpChip current={step.op} label={part.op} onpick={setOp} />
+				<OpChip current={step.op} label={part.op} {funcs} onpick={setOp} />
 			{:else if part.text}
 				<span class="text-sm font-bold text-slate-400">{part.text}</span>
 			{:else}
 				<ValueChip
 					value={step.args[part.slot]}
 					{available}
+					{params}
 					onpick={(v) => (step.args[part.slot] = v)}
 				/>
 			{/if}

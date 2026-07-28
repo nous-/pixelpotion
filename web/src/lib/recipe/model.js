@@ -2,20 +2,19 @@
 //
 //   program = { steps: [step, ...], color: value | null }
 //   step    = { id, name, op, args: { SLOT: value | null } }
-//   value   = { t: 'in',   id: 'x' | 'y' | 'time' | 'dist' | 'angle' }
-//           | { t: 'step', id: stepId }        (a step defined above)
-//           | { t: 'num',  v: number }
-//           | { t: 'col',  v: '#rrggbb' }
+//   value   = { t: 'in',    id: 'x' | 'y' | 'time' | 'lap' }
+//           | { t: 'step',  id: stepId }       (a step defined above)
+//           | { t: 'param', id: paramId }      (inside a library function)
+//           | { t: 'num',   v: number }
+//           | { t: 'col',   v: '#rrggbb' }
 //
 // There is no nesting: a step does one thing, and later steps refer to
 // earlier ones by name. Anything plugs in anywhere (auto-coerced).
 
 export const INPUTS = [
-	{ id: 'x', label: 'x', hint: 'how far right the dot is (0 to 1)' },
-	{ id: 'y', label: 'y', hint: 'how far up the dot is (0 to 1)' },
+	{ id: 'x', label: 'x', hint: 'how far right the pixel is (0 to 1)' },
+	{ id: 'y', label: 'y', hint: 'how far up the pixel is (0 to 1)' },
 	{ id: 'time', label: 'time', hint: 'seconds ticking by - makes things move' },
-	{ id: 'dist', label: 'distance from center', hint: 'how far the dot is from the middle' },
-	{ id: 'angle', label: 'angle around center', hint: 'which way the dot is from the middle (0 to 1, like a clock)' },
 	{ id: 'lap', label: 'lap', hint: 'which lap of the repeat block this is (0, 1, 2...); 0 outside loops' },
 	// The clock hands power the Clock example but would clutter the menu,
 	// so they still resolve (label, hint, GLSL) without being offered.
@@ -138,34 +137,10 @@ export const OPS = [
 		parts: [{ op: 'smoothstep' }, { slot: 'A' }, { text: 'to' }, { slot: 'B' }, { text: 'of' }, { slot: 'T' }]
 	},
 	{
-		id: 'wave',
-		menu: 'wave of',
-		hint: 'a sin squeezed to 0..1 - one bump per whole number',
-		parts: [{ op: 'wave of' }, { slot: 'N' }]
-	},
-	{
-		id: 'repeat',
-		menu: 'repeat',
-		hint: 'keep only the decimals - loops 0 to 1 forever',
-		parts: [{ op: 'repeat' }, { slot: 'N' }]
-	},
-	{
 		id: 'mix',
 		menu: 'mix ... and ... by',
 		hint: 'blend two things: 0 gives the first, 1 the second',
 		parts: [{ op: 'mix' }, { slot: 'A' }, { text: 'and' }, { slot: 'B' }, { text: 'by' }, { slot: 'T' }]
-	},
-	{
-		id: 'rainbow',
-		menu: 'rainbow',
-		hint: 'turn any number into a rainbow color',
-		parts: [{ op: 'rainbow' }, { slot: 'N' }]
-	},
-	{
-		id: 'noise',
-		menu: 'clouds',
-		hint: 'soft random puffs that drift by',
-		parts: [{ op: 'clouds' }, { slot: 'N' }]
 	},
 	{
 		id: 'noisexy',
@@ -230,10 +205,6 @@ const SLOT_DEFAULTS = {
 
 // Defaults that make the op instantly show something interesting.
 const OP_DEFAULTS = {
-	wave: { N: { t: 'in', id: 'time' } },
-	repeat: { N: { t: 'in', id: 'time' } },
-	rainbow: { N: { t: 'in', id: 'x' } },
-	noise: { N: { t: 'num', v: 3 } },
 	noisexy: { A: { t: 'in', id: 'x' }, B: { t: 'in', id: 'y' } },
 	snoise: { A: { t: 'in', id: 'x' }, B: { t: 'in', id: 'y' } },
 	noise3: { A: { t: 'in', id: 'x' }, B: { t: 'in', id: 'y' }, C: { t: 'in', id: 'time' } },
@@ -242,17 +213,26 @@ const OP_DEFAULTS = {
 	max: { A: { t: 'in', id: 'x' }, B: { t: 'in', id: 'y' } },
 	mod: { A: { t: 'in', id: 'time' }, B: { t: 'num', v: 1 } },
 	floor: { A: { t: 'in', id: 'time' } },
-	sqrt: { A: { t: 'in', id: 'dist' } },
-	pow: { A: { t: 'in', id: 'dist' }, B: { t: 'num', v: 2 } },
+	sqrt: { A: { t: 'in', id: 'x' } },
+	pow: { A: { t: 'in', id: 'x' }, B: { t: 'num', v: 2 } },
 	sin: { A: { t: 'in', id: 'time' } },
 	cos: { A: { t: 'in', id: 'time' } },
 	atan: { A: { t: 'in', id: 'y' }, B: { t: 'in', id: 'x' } },
 	clamp: { A: { t: 'in', id: 'x' }, LO: { t: 'num', v: 0.25 }, HI: { t: 'num', v: 0.75 } },
-	smoothstep: { A: { t: 'num', v: 0.3 }, B: { t: 'num', v: 0.7 }, T: { t: 'in', id: 'dist' } }
+	smoothstep: { A: { t: 'num', v: 0.3 }, B: { t: 'num', v: 0.7 }, T: { t: 'in', id: 'x' } }
 };
 
 /** After changing a step's op, fill any newly-needed slots with defaults. */
-export function ensureArgs(step) {
+export function ensureArgs(step, funcs = []) {
+	if (step.op?.startsWith('fn:')) {
+		const func = funcs.find((f) => f.id === step.op.slice(3));
+		(func?.params ?? []).forEach((p, i) => {
+			if (step.args[p.id] == null) {
+				step.args[p.id] = i === 0 ? { t: 'in', id: 'x' } : { t: 'num', v: 1 };
+			}
+		});
+		return;
+	}
 	for (const part of opById(step.op).parts) {
 		if (part.slot && step.args[part.slot] == null) {
 			const preferred = OP_DEFAULTS[step.op]?.[part.slot] ?? SLOT_DEFAULTS[part.slot];
@@ -267,7 +247,7 @@ export function uid() {
 
 /** A new step that is instantly alive: a wave of time. */
 export function newStep(n) {
-	return { id: uid(), name: `step ${n}`, op: 'wave', args: { N: { t: 'in', id: 'time' } } };
+	return { id: uid(), name: `step ${n}`, op: 'fn:wave', args: { N: { t: 'in', id: 'time' } } };
 }
 
 /**
@@ -286,4 +266,213 @@ export function newLoop(n) {
 		args: { N: { t: 'num', v: 8 } },
 		steps: [newStep(n)]
 	};
+}
+
+// ---- The function library ----------------------------------------------
+// A function is a mini recipe: named params, a step list, and a "gives
+// back" value. Calling one is a step with op 'fn:<funcId>' whose args are
+// keyed by param id. A function may call functions defined ABOVE it in
+// the library (never itself), so calls can never loop forever.
+//
+//   func = { id, name, params: [{ id, name }], steps: [step...], result: value | null }
+//
+// Inside a function, steps can use params ({ t: 'param', id }) plus all
+// the usual inputs (x, y, time...).
+
+export function newParam(name = 'n') {
+	return { id: uid(), name };
+}
+
+export function newFunc(n) {
+	const first = newStep(1);
+	first.op = 'sin';
+	first.args = { A: { t: 'in', id: 'time' } };
+	return {
+		id: uid(),
+		name: `magic ${n}`,
+		params: [{ id: uid(), name: 'n' }],
+		steps: [first],
+		result: { t: 'step', id: first.id }
+	};
+}
+
+// These used to be baked-in operations. Now they're ordinary library
+// functions kids can open up and mess with.
+const P = { t: 'param', id: 'N' };
+const st = (id, op, args, name = id) => ({ id, name, op, args });
+
+export const DEFAULT_FUNCS = [
+	{
+		id: 'wave',
+		name: 'wave',
+		params: [{ id: 'N', name: 'n' }],
+		steps: [
+			st('wv1', 'mul', { A: P, B: { t: 'num', v: 6.28318 } }, 'whole turn'),
+			st('wv2', 'sin', { A: { t: 'step', id: 'wv1' } }, 'swing'),
+			st('wv3', 'mul', { A: { t: 'step', id: 'wv2' }, B: { t: 'num', v: 0.5 } }, 'half'),
+			st('wv4', 'add', { A: { t: 'step', id: 'wv3' }, B: { t: 'num', v: 0.5 } }, 'lift')
+		],
+		result: { t: 'step', id: 'wv4' }
+	},
+	{
+		id: 'repeat',
+		name: 'repeat',
+		params: [{ id: 'N', name: 'n' }],
+		steps: [
+			st('fr1', 'floor', { A: P }, 'whole part'),
+			st('fr2', 'sub', { A: P, B: { t: 'step', id: 'fr1' } }, 'decimals')
+		],
+		result: { t: 'step', id: 'fr2' }
+	},
+	{
+		id: 'rainbow',
+		name: 'rainbow',
+		params: [{ id: 'N', name: 'n' }],
+		steps: [
+			st('rb1', 'floor', { A: P }),
+			st('rb2', 'sub', { A: P, B: { t: 'step', id: 'rb1' } }, 'hue'),
+			st('rb3', 'mul', { A: { t: 'step', id: 'rb2' }, B: { t: 'num', v: 6 } }),
+			st('rb4', 'sub', { A: { t: 'step', id: 'rb3' }, B: { t: 'num', v: 3 } }),
+			st('rb5', 'abs', { A: { t: 'step', id: 'rb4' } }),
+			st('rb6', 'sub', { A: { t: 'step', id: 'rb5' }, B: { t: 'num', v: 1 } }),
+			st('rb7', 'clamp', { A: { t: 'step', id: 'rb6' }, LO: { t: 'num', v: 0 }, HI: { t: 'num', v: 1 } }, 'red'),
+			st('rb8', 'add', { A: { t: 'step', id: 'rb2' }, B: { t: 'num', v: 0.6667 } }),
+			st('rb9', 'floor', { A: { t: 'step', id: 'rb8' } }),
+			st('rb10', 'sub', { A: { t: 'step', id: 'rb8' }, B: { t: 'step', id: 'rb9' } }),
+			st('rb11', 'mul', { A: { t: 'step', id: 'rb10' }, B: { t: 'num', v: 6 } }),
+			st('rb12', 'sub', { A: { t: 'step', id: 'rb11' }, B: { t: 'num', v: 3 } }),
+			st('rb13', 'abs', { A: { t: 'step', id: 'rb12' } }),
+			st('rb14', 'sub', { A: { t: 'step', id: 'rb13' }, B: { t: 'num', v: 1 } }),
+			st('rb15', 'clamp', { A: { t: 'step', id: 'rb14' }, LO: { t: 'num', v: 0 }, HI: { t: 'num', v: 1 } }, 'green'),
+			st('rb16', 'add', { A: { t: 'step', id: 'rb2' }, B: { t: 'num', v: 0.3333 } }),
+			st('rb17', 'floor', { A: { t: 'step', id: 'rb16' } }),
+			st('rb18', 'sub', { A: { t: 'step', id: 'rb16' }, B: { t: 'step', id: 'rb17' } }),
+			st('rb19', 'mul', { A: { t: 'step', id: 'rb18' }, B: { t: 'num', v: 6 } }),
+			st('rb20', 'sub', { A: { t: 'step', id: 'rb19' }, B: { t: 'num', v: 3 } }),
+			st('rb21', 'abs', { A: { t: 'step', id: 'rb20' } }),
+			st('rb22', 'sub', { A: { t: 'step', id: 'rb21' }, B: { t: 'num', v: 1 } }),
+			st('rb23', 'clamp', { A: { t: 'step', id: 'rb22' }, LO: { t: 'num', v: 0 }, HI: { t: 'num', v: 1 } }, 'blue'),
+			st('rb24', 'rgb', {
+				R: { t: 'step', id: 'rb7' },
+				G: { t: 'step', id: 'rb15' },
+				B: { t: 'step', id: 'rb23' }
+			}, 'paint')
+		],
+		result: { t: 'step', id: 'rb24' }
+	},
+	{
+		id: 'clouds',
+		name: 'clouds',
+		params: [{ id: 'N', name: 'zoom' }],
+		steps: [
+			st('cl1', 'mul', { A: { t: 'in', id: 'x' }, B: P }),
+			st('cl2', 'mul', { A: { t: 'in', id: 'time' }, B: { t: 'num', v: 0.15 } }),
+			st('cl3', 'sub', { A: { t: 'step', id: 'cl1' }, B: { t: 'step', id: 'cl2' } }, 'qx'),
+			st('cl4', 'mul', { A: { t: 'in', id: 'y' }, B: P }),
+			st('cl5', 'mul', { A: { t: 'in', id: 'time' }, B: { t: 'num', v: 0.35 } }),
+			st('cl6', 'sub', { A: { t: 'step', id: 'cl4' }, B: { t: 'step', id: 'cl5' } }, 'qy'),
+			st('cl7', 'noisexy', { A: { t: 'step', id: 'cl3' }, B: { t: 'step', id: 'cl6' } }, 'big puffs'),
+			st('cl8', 'mul', { A: { t: 'step', id: 'cl7' }, B: { t: 'num', v: 0.5 } }),
+			st('cl9', 'mul', { A: { t: 'step', id: 'cl3' }, B: { t: 'num', v: 2 } }),
+			st('cl10', 'add', { A: { t: 'step', id: 'cl9' }, B: { t: 'num', v: 11.3 } }),
+			st('cl11', 'mul', { A: { t: 'step', id: 'cl6' }, B: { t: 'num', v: 2 } }),
+			st('cl12', 'add', { A: { t: 'step', id: 'cl11' }, B: { t: 'num', v: 11.3 } }),
+			st('cl13', 'noisexy', { A: { t: 'step', id: 'cl10' }, B: { t: 'step', id: 'cl12' } }, 'mid puffs'),
+			st('cl14', 'mul', { A: { t: 'step', id: 'cl13' }, B: { t: 'num', v: 0.25 } }),
+			st('cl15', 'mul', { A: { t: 'step', id: 'cl3' }, B: { t: 'num', v: 4 } }),
+			st('cl16', 'add', { A: { t: 'step', id: 'cl15' }, B: { t: 'num', v: 27.7 } }),
+			st('cl17', 'mul', { A: { t: 'step', id: 'cl6' }, B: { t: 'num', v: 4 } }),
+			st('cl18', 'add', { A: { t: 'step', id: 'cl17' }, B: { t: 'num', v: 27.7 } }),
+			st('cl19', 'noisexy', { A: { t: 'step', id: 'cl16' }, B: { t: 'step', id: 'cl18' } }, 'small puffs'),
+			st('cl20', 'mul', { A: { t: 'step', id: 'cl19' }, B: { t: 'num', v: 0.125 } }),
+			st('cl21', 'add', { A: { t: 'step', id: 'cl8' }, B: { t: 'step', id: 'cl14' } }),
+			st('cl22', 'add', { A: { t: 'step', id: 'cl21' }, B: { t: 'step', id: 'cl20' } }),
+			st('cl23', 'div', { A: { t: 'step', id: 'cl22' }, B: { t: 'num', v: 0.875 } }, 'evened out')
+		],
+		result: { t: 'step', id: 'cl23' }
+	},
+	{
+		id: 'dist',
+		name: 'distance',
+		params: [],
+		steps: [
+			st('ds1', 'sub', { A: { t: 'in', id: 'x' }, B: { t: 'num', v: 0.5 } }, 'dx'),
+			st('ds2', 'sub', { A: { t: 'in', id: 'y' }, B: { t: 'num', v: 0.5 } }, 'dy'),
+			st('ds3', 'mul', { A: { t: 'step', id: 'ds1' }, B: { t: 'step', id: 'ds1' } }, 'dx squared'),
+			st('ds4', 'mul', { A: { t: 'step', id: 'ds2' }, B: { t: 'step', id: 'ds2' } }, 'dy squared'),
+			st('ds5', 'add', { A: { t: 'step', id: 'ds3' }, B: { t: 'step', id: 'ds4' } }),
+			st('ds6', 'sqrt', { A: { t: 'step', id: 'ds5' } }, 'how far'),
+			st('ds7', 'mul', { A: { t: 'step', id: 'ds6' }, B: { t: 'num', v: 2 } }, 'stretched')
+		],
+		result: { t: 'step', id: 'ds7' }
+	},
+	{
+		id: 'angle',
+		name: 'angle',
+		params: [],
+		steps: [
+			st('an1', 'sub', { A: { t: 'in', id: 'y' }, B: { t: 'num', v: 0.5 } }, 'dy'),
+			st('an2', 'sub', { A: { t: 'in', id: 'x' }, B: { t: 'num', v: 0.5 } }, 'dx'),
+			st('an3', 'atan', { A: { t: 'step', id: 'an1' }, B: { t: 'step', id: 'an2' } }, 'turn'),
+			st('an4', 'div', { A: { t: 'step', id: 'an3' }, B: { t: 'num', v: 6.28318 } }, 'as 0 to 1'),
+			st('an5', 'add', { A: { t: 'step', id: 'an4' }, B: { t: 'num', v: 0.5 } }, 'no minus')
+		],
+		result: { t: 'step', id: 'an5' }
+	}
+];
+
+// Ops that used to be built in and are now library functions. Their args
+// carry over untouched: the old N slot is the new N param.
+const OP_TO_FN = { wave: 'fn:wave', repeat: 'fn:repeat', rainbow: 'fn:rainbow', noise: 'fn:clouds' };
+
+// Inputs that used to be built in. They were values, not ops, so a
+// program that used them gets a step prepended that calls the library
+// function, and every old orange chip points at that step instead.
+const IN_TO_FN = {
+	dist: { stepId: '__dist', fn: 'fn:dist', name: 'distance' },
+	angle: { stepId: '__angle', fn: 'fn:angle', name: 'angle' }
+};
+
+/**
+ * Upgrades a program in place: old baked-in ops become library calls, and
+ * the default functions are (re)added if missing so those calls resolve.
+ */
+export function migrateProgram(program) {
+	const fix = (steps) => {
+		for (const s of steps ?? []) {
+			if (OP_TO_FN[s.op]) s.op = OP_TO_FN[s.op];
+			if (s.op === 'loop') fix(s.steps);
+		}
+	};
+	fix(program.steps);
+	if (!Array.isArray(program.funcs)) program.funcs = [];
+	for (const f of program.funcs) fix(f.steps);
+
+	const needed = new Set();
+	const fixValue = (v) => {
+		const to = v?.t === 'in' ? IN_TO_FN[v.id] : null;
+		if (!to) return v;
+		needed.add(v.id);
+		return { t: 'step', id: to.stepId };
+	};
+	const fixValues = (steps) => {
+		for (const s of steps ?? []) {
+			for (const slot of Object.keys(s.args ?? {})) s.args[slot] = fixValue(s.args[slot]);
+			if (s.op === 'loop') fixValues(s.steps);
+		}
+	};
+	fixValues(program.steps);
+	program.color = fixValue(program.color);
+	for (const id of ['angle', 'dist']) {
+		if (!needed.has(id)) continue;
+		const to = IN_TO_FN[id];
+		if (!program.steps.some((s) => s.id === to.stepId)) {
+			program.steps.unshift({ id: to.stepId, name: to.name, op: to.fn, args: {} });
+		}
+	}
+
+	for (const d of DEFAULT_FUNCS) {
+		if (!program.funcs.some((f) => f.id === d.id)) program.funcs.push(structuredClone(d));
+	}
+	return program;
 }

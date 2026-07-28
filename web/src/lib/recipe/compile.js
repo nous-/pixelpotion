@@ -29,8 +29,6 @@ const INPUT_CODE = {
 	x: 'x',
 	y: 'y',
 	time: 't',
-	dist: 'dist',
-	angle: 'ang',
 	lap: 'lap',
 	hourhand: 'u_clock.x',
 	minhand: 'u_clock.y',
@@ -45,9 +43,10 @@ const LOOP_MAX = 64;
  * Resolves a value reference against the current scope (vars/kinds maps
  * keyed by step id); anything broken quietly becomes 0. Inside a repeat
  * block the loop's own steps are all in scope: reading a step assigned
- * later in the body (or itself) simply reads last lap's value.
+ * later in the body (or itself) simply reads last lap's value. Inside a
+ * function, params resolves { t: 'param' } values.
  */
-function refExpr(value, kinds, vars) {
+function refExpr(value, kinds, vars, params) {
 	if (!value) return { kind: NUM, code: '0.0' };
 	switch (value.t) {
 		case 'in':
@@ -56,6 +55,8 @@ function refExpr(value, kinds, vars) {
 			return { kind: NUM, code: fmt(value.v) };
 		case 'col':
 			return { kind: COL, code: hexToVec3(value.v) };
+		case 'param':
+			return params?.get(value.id) ?? { kind: NUM, code: '0.0' };
 		case 'step': {
 			const v = vars.get(value.id);
 			if (!v) return { kind: NUM, code: '0.0' };
@@ -67,8 +68,16 @@ function refExpr(value, kinds, vars) {
 
 const BINARY = { add: '+', sub: '-', mul: '*', div: '/' };
 
-function stepExpr(step, ref) {
+function stepExpr(step, ref, fns) {
 	const arg = (slot) => ref(step.args?.[slot]);
+	// Library function calls: op 'fn:<id>', args keyed by param id. Only
+	// functions already emitted are callable, so recursion is impossible.
+	if (step.op?.startsWith('fn:')) {
+		const fn = fns?.get(step.op.slice(3));
+		if (!fn) return { kind: NUM, code: '0.0' };
+		const args = fn.params.map((pid) => toNum(arg(pid))).join(', ');
+		return { kind: fn.kind, code: `${fn.name}(${args})` };
+	}
 	switch (step.op) {
 		case 'add':
 		case 'sub':
@@ -114,10 +123,6 @@ function stepExpr(step, ref) {
 				kind: NUM,
 				code: `smoothstep(${toNum(arg('A'))}, ${toNum(arg('B'))}, ${toNum(arg('T'))})`
 			};
-		case 'wave':
-			return { kind: NUM, code: `sb_wave(${toNum(arg('N'))})` };
-		case 'repeat':
-			return { kind: NUM, code: `fract(${toNum(arg('N'))})` };
 		case 'mix': {
 			const a = arg('A');
 			const b = arg('B');
@@ -127,10 +132,6 @@ function stepExpr(step, ref) {
 			}
 			return { kind: NUM, code: `mix(${a.code}, ${b.code}, ${t})` };
 		}
-		case 'rainbow':
-			return { kind: COL, code: `sb_rainbow(${toNum(arg('N'))})` };
-		case 'noise':
-			return { kind: NUM, code: `sb_clouds(p, ${toNum(arg('N'))}, t)` };
 		case 'noisexy':
 			return { kind: NUM, code: `sb_vnoise(vec2(${toNum(arg('A'))}, ${toNum(arg('B'))}))` };
 		case 'snoise':
@@ -148,20 +149,18 @@ function stepExpr(step, ref) {
 	return { kind: NUM, code: '0.0' };
 }
 
-const shader = (decls, colorExpr) => `precision highp float;
+const shader = (fnText, decls, colorExpr) => `precision highp float;
 
 uniform float u_time;
 uniform vec2 u_resolution;
 uniform vec3 u_clock;
 
-float sb_wave(float n) {
-	return 0.5 + 0.5 * sin(n * 6.28318530718);
-}
-
-vec3 sb_rainbow(float n) {
-	float h = fract(n);
-	return clamp(abs(fract(h + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
-}
+// Per-pixel inputs live at global scope so library functions can use
+// them too; main() fills them in before anything runs.
+float x = 0.0;
+float y = 0.0;
+float t = 0.0;
+float lap = 0.0;
 
 float sb_hash(vec2 q) {
 	return fract(sin(dot(q, vec2(127.1, 311.7))) * 43758.5453123);
@@ -213,60 +212,50 @@ float sb_vnoise3(vec3 q) {
 	return mix(mix(a, b, u.y), mix(c, d, u.y), u.z);
 }
 
-// Fractal value noise that slowly drifts up and to the right, so clouds
-// float by and fire rises. The zoom argument sets the feature size.
-float sb_clouds(vec2 pos, float zoom, float t) {
-	vec2 q = pos * zoom + vec2(t * -0.15, t * -0.35);
-	float v = 0.5 * sb_vnoise(q);
-	v += 0.25 * sb_vnoise(q * 2.0 + 11.3);
-	v += 0.125 * sb_vnoise(q * 4.0 + 27.7);
-	return v / 0.875;
-}
-
-void main() {
+${fnText}void main() {
 	vec2 p = gl_FragCoord.xy / u_resolution;
-	float x = p.x;
-	float y = p.y;
-	float t = u_time;
-	float dist = length(p - 0.5) * 2.0;
-	float ang = atan(p.y - 0.5, p.x - 0.5) / 6.28318530718 + 0.5;
-	float lap = 0.0;
+	x = p.x;
+	y = p.y;
+	t = u_time;
 ${decls}
 	vec3 color = ${colorExpr};
 	gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
 }
 `;
 
+// What stands in for each param in a function step's mini preview, since
+// the real argument isn't known until somebody calls the function.
+const PREVIEW_PARAM = ['x', 'y', 't'];
+
 /**
- * Returns { main, sources } where main is the full-picture shader and
- * sources[stepId] shows that step's value on its own (numbers as
- * grayscale). Steps inside a repeat block show their value after the
- * whole loop has run.
+ * Emits a step list (plain steps and repeat blocks) as GLSL statements.
+ * Used for main() and for library function bodies alike. Returns maps
+ * for reading results back out: marks[stepId] = line count once that
+ * step's value exists (for mini previews).
  */
-export function compileProgram(program) {
-	const steps = program.steps ?? [];
+function emitSteps(steps, { params, fns, prefix }) {
 	const lines = [];
-	const marks = new Map(); // step id -> line count once its value exists
-	const kinds = new Map(); // step id -> NUM | COL, once in scope
-	const vars = new Map(); // step id -> GLSL variable name
+	const marks = new Map();
+	const kinds = new Map();
+	const vars = new Map();
 	let vi = 0;
 	let li = 0;
 
 	for (const step of steps) {
 		if (step.op === 'loop') {
-			// Nested loops are not supported; plain steps only in the body.
+			// Loops don't nest; plain steps only in the body.
 			const body = (step.steps ?? []).filter((s) => s.op !== 'loop');
 			if (!body.length) continue;
 			const raw = step.args?.N?.t === 'num' ? Number(step.args.N.v) : 8;
 			const n = Math.min(LOOP_MAX, Math.max(1, Math.round(Number.isFinite(raw) ? raw : 8)));
 
-			for (const s of body) vars.set(s.id, `v${vi++}`);
+			for (const s of body) vars.set(s.id, `${prefix}${vi++}`);
 			// Loop-carried references make kinds circular; iterate to settle
 			// (unknown refs read as numbers on the first pass).
 			const bodyKinds = new Map(kinds);
 			for (let pass = 0; pass < 3; pass++) {
 				for (const s of body) {
-					bodyKinds.set(s.id, stepExpr(s, (v) => refExpr(v, bodyKinds, vars)).kind);
+					bodyKinds.set(s.id, stepExpr(s, (v) => refExpr(v, bodyKinds, vars, params), fns).kind);
 				}
 			}
 
@@ -274,24 +263,27 @@ export function compileProgram(program) {
 				const k = bodyKinds.get(s.id);
 				lines.push(`\t${k === COL ? 'vec3' : 'float'} ${vars.get(s.id)} = ${k === COL ? 'vec3(0.0)' : '0.0'};`);
 			}
-			const it = `l${li++}`;
+			// lap is saved and restored so a loop inside a function doesn't
+			// trample the lap of whoever called it from inside their own loop.
+			const it = `${prefix}l${li++}`;
+			lines.push(`\tfloat ${it}s = lap;`);
 			lines.push(`\tfor (int ${it} = 0; ${it} < ${n}; ${it}++) {`);
 			lines.push(`\t\tlap = float(${it});`);
 			for (const s of body) {
-				const e = stepExpr(s, (v) => refExpr(v, bodyKinds, vars));
+				const e = stepExpr(s, (v) => refExpr(v, bodyKinds, vars, params), fns);
 				const k = bodyKinds.get(s.id);
 				const code = e.kind === k ? e.code : k === COL ? toCol(e) : toNum(e);
 				lines.push(`\t\t${vars.get(s.id)} = ${code};`);
 			}
 			lines.push('\t}');
-			lines.push('\tlap = 0.0;');
+			lines.push(`\tlap = ${it}s;`);
 			for (const s of body) {
 				kinds.set(s.id, bodyKinds.get(s.id));
 				marks.set(s.id, lines.length);
 			}
 		} else {
-			const e = stepExpr(step, (v) => refExpr(v, kinds, vars));
-			const v = `v${vi++}`;
+			const e = stepExpr(step, (v) => refExpr(v, kinds, vars, params), fns);
+			const v = `${prefix}${vi++}`;
 			vars.set(step.id, v);
 			kinds.set(step.id, e.kind);
 			lines.push(`\t${e.kind === COL ? 'vec3' : 'float'} ${v} = ${e.code};`);
@@ -299,12 +291,66 @@ export function compileProgram(program) {
 		}
 	}
 
-	const finalRef = refExpr(program.color, kinds, vars);
-	const main = shader(lines.join('\n'), program.color ? toCol(finalRef) : 'vec3(0.15)');
+	return { lines, marks, kinds, vars };
+}
 
+/**
+ * Returns { main, sources } where main is the full-picture shader and
+ * sources[stepId] shows that step's value on its own (numbers as
+ * grayscale). Steps inside a repeat block show their value after the
+ * whole loop has run. Steps inside a library function get preview
+ * sources keyed 'fn/<funcId>/<stepId>', rendered with x/y/time standing
+ * in for the params.
+ */
+export function compileProgram(program) {
 	const sources = {};
+
+	// ---- Library functions: emit real GLSL functions, top to bottom.
+	// Each may only call the ones above it, so there is no recursion.
+	const fns = new Map(); // func id -> { name, kind, params: [param ids] }
+	const fnParts = [];
+	const fnPreviews = [];
+	(program.funcs ?? []).forEach((func, fi) => {
+		const params = (func.params ?? []).map((p, pi) => ({ id: p.id, glsl: `p${fi}_${pi}` }));
+		const pmap = new Map(params.map((p) => [p.id, { kind: NUM, code: p.glsl }]));
+
+		const body = emitSteps(func.steps ?? [], { params: pmap, fns, prefix: `f${fi}_` });
+		const res = refExpr(func.result, body.kinds, body.vars, pmap);
+		const retKind = func.result ? res.kind : NUM;
+		fnParts.push(
+			`${retKind === COL ? 'vec3' : 'float'} fn_${fi}(${params.map((p) => `float ${p.glsl}`).join(', ')}) {\n` +
+				body.lines.map((l) => `${l}\n`).join('') +
+				`\treturn ${func.result ? res.code : '0.0'};\n}\n\n`
+		);
+		fns.set(func.id, { name: `fn_${fi}`, kind: retKind, params: params.map((p) => p.id) });
+
+		// Preview pass: the same body inlined into main, params swapped
+		// for x/y/t so every step still shows a live picture. Built here
+		// but rendered into shaders once fnText is complete (below).
+		const ppmap = new Map(
+			params.map((p, pi) => [p.id, { kind: NUM, code: PREVIEW_PARAM[pi] ?? '1.0' }])
+		);
+		const pre = emitSteps(func.steps ?? [], { params: ppmap, fns, prefix: `g${fi}_` });
+		for (const [id, mark] of pre.marks) {
+			fnPreviews.push({
+				key: `fn/${func.id}/${id}`,
+				decls: pre.lines.slice(0, mark).join('\n'),
+				expr: toCol({ kind: pre.kinds.get(id), code: pre.vars.get(id) })
+			});
+		}
+	});
+	const fnText = fnParts.join('');
+	for (const pre of fnPreviews) sources[pre.key] = shader(fnText, pre.decls, pre.expr);
+
+	// ---- The program itself.
+	const { lines, marks, kinds, vars } = emitSteps(program.steps ?? [], { fns, prefix: 'v' });
+
+	const finalRef = refExpr(program.color, kinds, vars);
+	const main = shader(fnText, lines.join('\n'), program.color ? toCol(finalRef) : 'vec3(0.15)');
+
 	for (const [id, mark] of marks) {
 		sources[id] = shader(
+			fnText,
 			lines.slice(0, mark).join('\n'),
 			toCol({ kind: kinds.get(id), code: vars.get(id) })
 		);

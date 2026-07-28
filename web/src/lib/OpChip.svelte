@@ -2,7 +2,7 @@
 	// The operation word/symbol in a step. Click to swap what the step does.
 	import { OPS } from './recipe/model.js';
 
-	let { current, label, onpick } = $props();
+	let { current, label, funcs = [], onpick } = $props();
 
 	let open = $state(false);
 	let pos = $state({ x: 0, y: 0 });
@@ -66,5 +66,30 @@
 				{/if}
 			</button>
 		{/each}
+
+		{#if funcs.length}
+			<p class="mt-1.5 mb-0.5 px-2.5 text-[10px] font-black tracking-widest text-violet-400 uppercase">
+				From your library
+			</p>
+			{#each funcs as func (func.id)}
+				<button
+					onclick={() => {
+						onpick(`fn:${func.id}`);
+						open = false;
+					}}
+					class="rounded-lg px-2.5 py-1 text-left transition {`fn:${func.id}` === current
+						? 'bg-violet-500 text-white'
+						: 'text-violet-700 hover:bg-violet-50'}"
+				>
+					<span class="block text-sm font-bold">{func.name || 'function'}</span>
+					<span
+						class="block text-[10px] font-medium {`fn:${func.id}` === current
+							? 'text-violet-200'
+							: 'text-violet-400'}"
+						>takes {func.params.map((p) => p.name || '?').join(', ') || 'nothing'}</span
+					>
+				</button>
+			{/each}
+		{/if}
 	</div>
 {/if}

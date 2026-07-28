@@ -1,9 +1,9 @@
 <script>
 	// A slot in a step. Click it and a menu shows everything that can go
-	// here: what the dot knows, your earlier steps, a number, or a color.
+	// here: what the pixel knows, your earlier steps, a number, or a color.
 	import { INPUTS } from './recipe/model.js';
 
-	let { value = null, available = [], onpick } = $props();
+	let { value = null, available = [], params = [], onpick } = $props();
 
 	const menuInputs = INPUTS.filter((i) => !i.hidden);
 
@@ -20,6 +20,7 @@
 
 	const inputFor = (id) => INPUTS.find((i) => i.id === id);
 	const stepFor = (id) => available.find((s) => s.id === id);
+	const paramFor = (id) => params.find((p) => p.id === id);
 	// Up to 4 decimals so tiny values like 0.003 don't display as 0.
 	const showNum = (v) => String(parseFloat(Number(v).toFixed(4)));
 
@@ -74,6 +75,14 @@
 	>
 		{inputFor(value.id)?.label ?? '?'}
 	</button>
+{:else if value.t === 'param'}
+	<button
+		bind:this={btnEl}
+		onclick={toggle}
+		class="rounded-full bg-violet-100 px-3 py-1 text-sm font-bold text-violet-700 transition hover:bg-violet-200 active:scale-95"
+	>
+		{paramFor(value.id)?.name || '?'}
+	</button>
 {:else if value.t === 'step'}
 	{@const step = stepFor(value.id)}
 	<button
@@ -110,8 +119,26 @@
 		class="fixed z-50 flex w-72 flex-col gap-3 rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-indigo-100"
 		style="left:{pos.x}px; top:{pos.y}px"
 	>
+		{#if params.length}
+			<div>
+				<p class="mb-1.5 text-[10px] font-black tracking-widest text-violet-400 uppercase">
+					The function is given
+				</p>
+				<div class="flex flex-wrap gap-1.5">
+					{#each params as param (param.id)}
+						<button
+							onclick={() => pick({ t: 'param', id: param.id })}
+							class="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700 transition hover:bg-violet-200 active:scale-95"
+						>
+							{param.name || '?'}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		<div>
-			<p class="mb-1.5 text-[10px] font-black tracking-widest text-orange-400 uppercase">The dot knows</p>
+			<p class="mb-1.5 text-[10px] font-black tracking-widest text-orange-400 uppercase">The pixel knows</p>
 			<div class="flex flex-wrap gap-1.5">
 				{#each menuInputs as input (input.id)}
 					<button
