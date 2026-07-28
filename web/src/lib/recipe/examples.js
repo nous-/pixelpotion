@@ -756,6 +756,96 @@ const fractalShade = [
 // Every picture is a family: the same idea at three sizes (a drop,
 // a splash, the cauldron!) so kids can see how a picture grows one
 // step at a time.
+// ---- Warp: the classic star tunnel --------------------------------------
+// Shared by the two tunnel tiers. Aim a ray out from the screen middle
+// and see how far it steps per grid cell.
+const warpRay = [
+	fst('x2', 'mul', { A: inp('x'), B: num(2) }),
+	fst('rx', 'sub', { A: ref('x2'), B: num(1) }, 'ray x'),
+	fst('y2', 'mul', { A: inp('y'), B: num(2) }),
+	fst('ry', 'sub', { A: ref('y2'), B: num(1) }, 'ray y'),
+	fst('arx', 'abs', { A: ref('rx') }),
+	fst('ary', 'abs', { A: ref('ry') }),
+	fst('mm', 'max', { A: ref('arx'), B: ref('ary') }, 'edge'),
+	fst('sx', 'div', { A: ref('rx'), B: ref('mm') }, 'walk x'),
+	fst('sy', 'div', { A: ref('ry'), B: ref('mm') }, 'walk y'),
+	fst('sz', 'div', { A: num(1), B: ref('mm') }, 'walk z'),
+	fst('ix0', 'mul', { A: ref('sx'), B: num(2) }),
+	fst('ix', 'add', { A: ref('ix0'), B: num(0.5) }, 'start x'),
+	fst('iy0', 'mul', { A: ref('sy'), B: num(2) }),
+	fst('iy', 'add', { A: ref('iy0'), B: num(0.5) }, 'start y'),
+	fst('iz0', 'mul', { A: ref('sz'), B: num(2) }),
+	fst('iz', 'add', { A: ref('iz0'), B: num(0.5) }, 'start z')
+];
+
+// One lap = one grid cell the ray flies through: the cell's star has a
+// random depth, and how close that depth is to the ray sets the color -
+// red a bit ahead, blue a bit behind, so speed smears into rainbow.
+// Needs 'off' (warp), 'spd' (speed) and 'hf' (half surge) defined above.
+const warpFly = [
+	fst('l1', 'mul', { A: inp('lap'), B: num(1000) }),
+	fst('cl', 'clamp', { A: ref('l1'), LO: num(0), HI: num(1) }),
+	fst('isf', 'sub', { A: num(1), B: ref('cl') }, 'first lap?'),
+	fst('pxa', 'add', { A: ref('px'), B: ref('sx') }),
+	fst('px', 'mix', { A: ref('pxa'), B: ref('ix'), T: ref('isf') }, 'pos x'),
+	fst('pya', 'add', { A: ref('py'), B: ref('sy') }),
+	fst('py', 'mix', { A: ref('pya'), B: ref('iy'), T: ref('isf') }, 'pos y'),
+	fst('pza', 'add', { A: ref('pz'), B: ref('sz') }),
+	fst('pz', 'mix', { A: ref('pza'), B: ref('iz'), T: ref('isf') }, 'pos z'),
+	fst('cx', 'floor', { A: ref('px') }, 'cell x'),
+	fst('cy', 'floor', { A: ref('py') }, 'cell y'),
+	fst('rz', 'noisexy', { A: ref('cx'), B: ref('cy') }, 'star luck'),
+	fst('zo', 'sub', { A: ref('rz'), B: ref('off') }),
+	fst('zf', 'floor', { A: ref('zo') }),
+	fst('z', 'sub', { A: ref('zo'), B: ref('zf') }, 'depth'),
+	fst('d0', 'mul', { A: ref('z'), B: num(50) }),
+	fst('d', 'sub', { A: ref('d0'), B: ref('pz') }, 'gap'),
+	fst('fx', 'sub', { A: ref('px'), B: ref('cx') }),
+	fst('fy', 'sub', { A: ref('py'), B: ref('cy') }),
+	fst('ox', 'sub', { A: ref('fx'), B: num(0.5) }),
+	fst('oy', 'sub', { A: ref('fy'), B: num(0.5) }),
+	fst('ox2', 'mul', { A: ref('ox'), B: ref('ox') }),
+	fst('oy2', 'mul', { A: ref('oy'), B: ref('oy') }),
+	fst('dd', 'add', { A: ref('ox2'), B: ref('oy2') }),
+	fst('ln', 'sqrt', { A: ref('dd') }),
+	fst('l8', 'mul', { A: ref('ln'), B: num(8) }),
+	fst('wi', 'sub', { A: num(1), B: ref('l8') }),
+	fst('wm', 'max', { A: ref('wi'), B: num(0) }),
+	fst('w', 'mul', { A: ref('wm'), B: ref('wm') }, 'star glow'),
+	fst('dr', 'add', { A: ref('d'), B: ref('hf') }),
+	fst('adr', 'abs', { A: ref('dr') }),
+	fst('nr', 'div', { A: ref('adr'), B: ref('spd') }),
+	fst('r1', 'sub', { A: num(1), B: ref('nr') }),
+	fst('cr', 'max', { A: ref('r1'), B: num(0) }, 'red'),
+	fst('ad', 'abs', { A: ref('d') }),
+	fst('ng', 'div', { A: ref('ad'), B: ref('spd') }),
+	fst('g1', 'sub', { A: num(1), B: ref('ng') }),
+	fst('cg', 'max', { A: ref('g1'), B: num(0) }, 'green'),
+	fst('db', 'sub', { A: ref('d'), B: ref('hf') }),
+	fst('adb', 'abs', { A: ref('db') }),
+	fst('nb', 'div', { A: ref('adb'), B: ref('spd') }),
+	fst('b1', 'sub', { A: num(1), B: ref('nb') }),
+	fst('cb', 'max', { A: ref('b1'), B: num(0) }, 'blue'),
+	fst('zi', 'sub', { A: num(1), B: ref('z') }),
+	fst('fa0', 'mul', { A: ref('zi'), B: num(1.5) }),
+	fst('fac', 'mul', { A: ref('fa0'), B: ref('w') }, 'shine'),
+	fst('pr', 'mul', { A: ref('cr'), B: ref('fac') }),
+	fst('pg', 'mul', { A: ref('cg'), B: ref('fac') }),
+	fst('pb', 'mul', { A: ref('cb'), B: ref('fac') }),
+	fst('accr', 'add', { A: ref('accr'), B: ref('pr') }, 'total red'),
+	fst('accg', 'add', { A: ref('accg'), B: ref('pg') }, 'total green'),
+	fst('accb', 'add', { A: ref('accb'), B: ref('pb') }, 'total blue')
+];
+
+// Gamma correction, like the original: light adds up linearly, then gets
+// converted back to screen color at the end.
+const warpGamma = [
+	fst('gr', 'pow', { A: ref('accr'), B: num(0.4545) }, 'gamma red'),
+	fst('gg', 'pow', { A: ref('accg'), B: num(0.4545) }, 'gamma green'),
+	fst('gb', 'pow', { A: ref('accb'), B: num(0.4545) }, 'gamma blue'),
+	fst('paint', 'rgb', { R: ref('gr'), G: ref('gg'), B: ref('gb') })
+];
+
 export const families = [
 	{
 		name: 'First steps',
@@ -1947,6 +2037,56 @@ export const families = [
 				label: 'big',
 				program: {
 					steps: [...fractalCamera, loop('march', 64, fractalMarchBody), ...fractalShade],
+					color: ref('paint')
+				}
+			}
+		]
+	},
+	{
+		// The classic warp-speed star tunnel. The whole trick: chop space
+		// into grid cells, give every cell one star with a random depth
+		// (noise sampled at whole numbers IS a plain random number), and
+		// light the star up when its depth flies past you.
+		name: 'Warp',
+		dim: '3D',
+		tiers: [
+			{
+				// Frozen mid-flight: same ray walk and star streaks as
+				// big, but warp and speed are plain numbers - so you can
+				// study the streaks without them flying past.
+				label: 'medium',
+				program: {
+					steps: [
+						...warpRay,
+						fst('off', 'just', { A: num(3.6) }, 'warp'),
+						fst('spd', 'just', { A: num(3.2) }, 'speed'),
+						fst('hf', 'just', { A: num(1.55) }, 'half surge'),
+						loop('fly', 20, warpFly),
+						...warpGamma
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				// Warp and speed breathe with time, so the tunnel surges
+				// and the streaks stretch as you fly.
+				label: 'big',
+				program: {
+					steps: [
+						...warpRay,
+						fst('of1', 'mul', { A: inp('time'), B: num(0.5) }),
+						fst('co', 'cos', { A: ref('of1') }),
+						fst('co1', 'add', { A: ref('co'), B: num(1) }),
+						fst('sp2', 'mul', { A: ref('co1'), B: num(2) }, 'surge'),
+						fst('spd', 'add', { A: ref('sp2'), B: num(0.1) }, 'speed'),
+						fst('si', 'sin', { A: ref('of1') }),
+						fst('si9', 'mul', { A: ref('si'), B: num(0.96) }),
+						fst('of2', 'add', { A: ref('of1'), B: ref('si9') }),
+						fst('off', 'mul', { A: ref('of2'), B: num(2) }, 'warp'),
+						fst('hf', 'mul', { A: ref('sp2'), B: num(0.5) }, 'half surge'),
+						loop('fly', 20, warpFly),
+						...warpGamma
+					],
 					color: ref('paint')
 				}
 			}

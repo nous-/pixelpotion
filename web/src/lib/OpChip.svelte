@@ -12,13 +12,19 @@
 	function toggle() {
 		if (!open) {
 			const r = btnEl.getBoundingClientRect();
-			pos = {
-				x: Math.max(8, Math.min(r.left, window.innerWidth - 280)),
-				y: Math.min(r.bottom + 8, window.innerHeight - 440)
-			};
+			pos = { x: r.left, y: r.bottom + 8 };
 		}
 		open = !open;
 	}
+
+	// Once the popover has real dimensions, nudge it fully on screen.
+	$effect(() => {
+		if (!open || !popEl) return;
+		const r = popEl.getBoundingClientRect();
+		const x = Math.max(8, Math.min(pos.x, window.innerWidth - r.width - 8));
+		const y = Math.max(8, Math.min(pos.y, window.innerHeight - r.height - 8));
+		if (x !== pos.x || y !== pos.y) pos = { x, y };
+	});
 
 	function onWindowDown(e) {
 		if (open && !popEl?.contains(e.target) && !btnEl?.contains(e.target)) open = false;
@@ -43,7 +49,7 @@
 {#if open}
 	<div
 		bind:this={popEl}
-		class="fixed z-50 flex max-h-[26rem] w-64 flex-col gap-0.5 overflow-y-auto rounded-2xl bg-white p-2 shadow-2xl ring-1 ring-indigo-100"
+		class="fixed z-50 flex max-h-[calc(100vh-1rem)] w-64 flex-col gap-0.5 overflow-y-auto rounded-2xl bg-white p-2 shadow-2xl ring-1 ring-indigo-100"
 		style="left:{pos.x}px; top:{pos.y}px"
 	>
 		{#each OPS as op (op.id)}

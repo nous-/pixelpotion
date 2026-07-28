@@ -27,14 +27,20 @@
 	function toggle() {
 		if (!open) {
 			const r = btnEl.getBoundingClientRect();
-			pos = {
-				x: Math.max(8, Math.min(r.left, window.innerWidth - 300)),
-				y: Math.min(r.bottom + 8, window.innerHeight - 340)
-			};
+			pos = { x: r.left, y: r.bottom + 8 };
 			numDraft = value?.t === 'num' ? value.v : 1;
 		}
 		open = !open;
 	}
+
+	// Once the popover has real dimensions, nudge it fully on screen.
+	$effect(() => {
+		if (!open || !popEl) return;
+		const r = popEl.getBoundingClientRect();
+		const x = Math.max(8, Math.min(pos.x, window.innerWidth - r.width - 8));
+		const y = Math.max(8, Math.min(pos.y, window.innerHeight - r.height - 8));
+		if (x !== pos.x || y !== pos.y) pos = { x, y };
+	});
 
 	function pick(v, keepOpen = false) {
 		onpick(v);
@@ -116,7 +122,7 @@
 {#if open}
 	<div
 		bind:this={popEl}
-		class="fixed z-50 flex w-72 flex-col gap-3 rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-indigo-100"
+		class="fixed z-50 flex max-h-[calc(100vh-1rem)] w-72 flex-col gap-3 overflow-y-auto rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-indigo-100"
 		style="left:{pos.x}px; top:{pos.y}px"
 	>
 		{#if params.length}

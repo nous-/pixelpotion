@@ -2,9 +2,10 @@
 	import Preview from '$lib/Preview.svelte';
 	import StepRow from '$lib/StepRow.svelte';
 	import ValueChip from '$lib/ValueChip.svelte';
+	import LoopCount from '$lib/LoopCount.svelte';
 	import { compileProgram } from '$lib/recipe/compile.js';
 	import { families, freshProgram } from '$lib/recipe/examples.js';
-	import { newStep, newLoop, newFunc, migrateProgram, uid, LOOP_MAX } from '$lib/recipe/model.js';
+	import { newStep, newLoop, newFunc, migrateProgram, uid } from '$lib/recipe/model.js';
 	import { setPaused } from '$lib/recipe/playclock.js';
 
 	const STORAGE_KEY = 'pixel-potion-recipe';
@@ -120,14 +121,27 @@
 		// example calls comes back.
 		migrateProgram(program);
 		selectedId = null;
+		openFuncs = new Set();
 	}
 
 	// ---- Function library --------------------------------------------
 
 	const PARAM_NAMES = ['n', 'm', 'k', 'w'];
 
+	// Empty = everything collapsed. New functions open so you can edit them.
+	let openFuncs = $state(new Set());
+
+	function toggleFunc(id) {
+		const next = new Set(openFuncs);
+		if (next.has(id)) next.delete(id);
+		else next.add(id);
+		openFuncs = next;
+	}
+
 	function addFunc() {
-		program.funcs.push(newFunc(program.funcs.length + 1));
+		const func = newFunc(program.funcs.length + 1);
+		program.funcs.push(func);
+		openFuncs = new Set(openFuncs).add(func.id);
 	}
 
 	function removeFunc(fi) {
@@ -280,7 +294,18 @@
 	<title>Pixel Potion — draw with math</title>
 </svelte:head>
 
-<div class="flex h-screen flex-col bg-indigo-50">
+<div class="flex h-screen flex-col items-center justify-center gap-4 bg-indigo-50 px-8 text-center md:hidden">
+	<h1
+		class="bg-gradient-to-r from-fuchsia-500 via-orange-400 to-sky-500 bg-clip-text text-3xl font-black tracking-tight text-transparent"
+	>
+		Pixel Potion
+	</h1>
+	<p class="max-w-xs text-base font-medium leading-relaxed text-slate-500">
+		This is built for tablets and desktops — open it on a bigger screen to brew.
+	</p>
+</div>
+
+<div class="hidden h-screen flex-col bg-indigo-50 md:flex">
 	<header class="flex items-baseline gap-3 border-b border-indigo-100 bg-white px-5 py-3 shadow-sm">
 		<h1
 			class="bg-gradient-to-r from-fuchsia-500 via-orange-400 to-sky-500 bg-clip-text text-2xl font-black tracking-tight text-transparent"
@@ -290,13 +315,32 @@
 		<p class="text-sm font-medium text-slate-500">
 			draw with math — brew steps, the last line colors every pixel
 		</p>
-		<button
-			onclick={togglePause}
-			aria-label={paused ? 'play' : 'pause'}
-			class="ml-auto self-center rounded-full bg-indigo-100 px-4 py-1.5 text-sm font-black text-indigo-600 transition hover:bg-indigo-200 active:scale-95"
-		>
-			{paused ? '▶ play' : '⏸ pause'}
-		</button>
+		<div class="ml-auto flex items-center gap-2 self-center">
+			<button
+				onclick={() => loadProgram(freshProgram)}
+				class="rounded-full bg-slate-100 px-4 py-1.5 text-sm font-black text-slate-500 transition hover:bg-slate-200 active:scale-95"
+			>
+				reset all
+			</button>
+			<button
+				onclick={togglePause}
+				aria-label={paused ? 'play' : 'pause'}
+				class="rounded-full bg-indigo-100 p-2 text-indigo-600 transition hover:bg-indigo-200 active:scale-95"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" aria-hidden="true">
+					<path d="M184,64V192a8,8,0,0,1-16,0V64a8,8,0,0,1,16,0Zm40-8a8,8,0,0,0-8,8V192a8,8,0,0,0,16,0V64A8,8,0,0,0,224,56Zm-87.33,58.66L48.48,58.51A15.91,15.91,0,0,0,24,71.85v112.3A15.83,15.83,0,0,0,32.23,198a15.95,15.95,0,0,0,16.25-.53l88.19-56.15a15.8,15.8,0,0,0,0-26.68Z"></path>
+				</svg>
+			</button>
+			<button
+				onclick={togglePreviewFullscreen}
+				aria-label={previewFullscreen ? 'exit fullscreen' : 'enter fullscreen'}
+				class="rounded-full bg-indigo-100 p-2 text-indigo-600 transition hover:bg-indigo-200 active:scale-95"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" aria-hidden="true">
+					<path d="M93.66,202.34A8,8,0,0,1,88,216H48a8,8,0,0,1-8-8V168a8,8,0,0,1,13.66-5.66ZM88,40H48a8,8,0,0,0-8,8V88a8,8,0,0,0,13.66,5.66l40-40A8,8,0,0,0,88,40ZM211.06,160.61a8,8,0,0,0-8.72,1.73l-40,40A8,8,0,0,0,168,216h40a8,8,0,0,0,8-8V168A8,8,0,0,0,211.06,160.61ZM208,40H168a8,8,0,0,0-5.66,13.66l40,40A8,8,0,0,0,216,88V48A8,8,0,0,0,208,40Z"></path>
+				</svg>
+			</button>
+		</div>
 	</header>
 
 	<main class="flex min-h-0 flex-1">
@@ -307,13 +351,11 @@
 						<div class="flex flex-col gap-2 rounded-2xl bg-indigo-100/70 p-2.5 ring-2 ring-indigo-200">
 							<div class="flex items-center gap-2 px-1">
 								<span class="text-sm font-black text-indigo-600">repeat</span>
-								<ValueChip
-									value={step.args.N}
-									available={[]}
-									onpick={(v) => (step.args.N = v)}
+								<LoopCount
+									value={step.args.N?.t === 'num' ? step.args.N.v : 8}
+									onchange={(n) => (step.args.N = { t: 'num', v: n })}
 								/>
 								<span class="text-sm font-black text-indigo-600">times</span>
-								<span class="text-[10px] font-bold text-indigo-400">(up to {LOOP_MAX})</span>
 								<div class="ml-auto flex items-center gap-1">
 									<button
 										onclick={() => moveStep(i, -1)}
@@ -414,36 +456,57 @@
 				</div>
 
 				{#each program.funcs as func, fi (func.id)}
+					{@const open = openFuncs.has(func.id)}
 					<div class="flex flex-col gap-2 rounded-2xl bg-violet-100/60 p-2.5 ring-2 ring-violet-200">
 						<div class="flex flex-wrap items-center gap-2 px-1">
-							<input
-								bind:value={program.funcs[fi].name}
-								placeholder="name it"
-								class="w-28 rounded-lg bg-transparent px-1.5 py-0.5 text-sm font-black text-violet-700 outline-none placeholder:font-bold placeholder:text-violet-300 hover:bg-violet-50 focus:bg-white"
-							/>
-							<span class="text-sm font-bold text-violet-400">is given</span>
-							{#each func.params as param, pi (param.id)}
-								<span class="flex items-center rounded-full bg-violet-200/80 pl-1">
-									<input
-										bind:value={program.funcs[fi].params[pi].name}
-										placeholder="?"
-										class="w-12 bg-transparent px-1.5 py-0.5 text-center text-sm font-bold text-violet-700 outline-none"
-									/>
-									<button
-										aria-label="remove this"
-										onclick={() => removeParam(fi, pi)}
-										class="px-1.5 py-0.5 text-xs font-bold text-violet-400 transition hover:text-rose-500"
-									>
-										✕
-									</button>
-								</span>
-							{/each}
 							<button
-								onclick={() => addParam(fi)}
-								class="rounded-full border-2 border-dashed border-violet-300 px-2 py-0.5 text-xs font-bold text-violet-400 transition hover:border-violet-400 hover:text-violet-600 active:scale-95"
+								onclick={() => toggleFunc(func.id)}
+								aria-label={open ? 'collapse function' : 'expand function'}
+								aria-expanded={open}
+								class="rounded-lg px-1.5 py-1 text-sm font-black text-violet-500 transition hover:bg-violet-200/80 active:scale-95"
 							>
-								+
+								{open ? '▾' : '▸'}
 							</button>
+							{#if open}
+								<input
+									bind:value={program.funcs[fi].name}
+									placeholder="name it"
+									class="w-28 rounded-lg bg-transparent px-1.5 py-0.5 text-sm font-black text-violet-700 outline-none placeholder:font-bold placeholder:text-violet-300 hover:bg-violet-50 focus:bg-white"
+								/>
+								<span class="text-sm font-bold text-violet-400">is given</span>
+								{#each func.params as param, pi (param.id)}
+									<span class="flex items-center rounded-full bg-violet-200/80 pl-1">
+										<input
+											bind:value={program.funcs[fi].params[pi].name}
+											placeholder="?"
+											class="w-12 bg-transparent px-1.5 py-0.5 text-center text-sm font-bold text-violet-700 outline-none"
+										/>
+										<button
+											aria-label="remove this"
+											onclick={() => removeParam(fi, pi)}
+											class="px-1.5 py-0.5 text-xs font-bold text-violet-400 transition hover:text-rose-500"
+										>
+											✕
+										</button>
+									</span>
+								{/each}
+								<button
+									onclick={() => addParam(fi)}
+									class="rounded-full border-2 border-dashed border-violet-300 px-2 py-0.5 text-xs font-bold text-violet-400 transition hover:border-violet-400 hover:text-violet-600 active:scale-95"
+								>
+									+
+								</button>
+							{:else}
+								<button
+									onclick={() => toggleFunc(func.id)}
+									class="text-sm font-black text-violet-700 transition hover:text-violet-500"
+								>
+									{func.name || 'unnamed'}
+								</button>
+								<span class="text-xs font-bold text-violet-400">
+									{flatten(func.steps).length} step{flatten(func.steps).length === 1 ? '' : 's'}
+								</span>
+							{/if}
 							<button
 								onclick={() => removeFunc(fi)}
 								class="ml-auto rounded-lg bg-rose-50 px-2.5 py-1.5 text-sm font-bold text-rose-400 transition hover:bg-rose-100 hover:text-rose-600 active:scale-95"
@@ -453,6 +516,7 @@
 							</button>
 						</div>
 
+						{#if open}
 						<div class="ml-3 flex flex-col gap-2 border-l-2 border-violet-300 pl-3">
 							{#each func.steps as fstep, si (fstep.id)}
 								{#if fstep.op === 'loop'}
@@ -461,13 +525,11 @@
 									>
 										<div class="flex items-center gap-2 px-1">
 											<span class="text-sm font-black text-indigo-600">repeat</span>
-											<ValueChip
-												value={fstep.args.N}
-												available={[]}
-												onpick={(v) => (fstep.args.N = v)}
+											<LoopCount
+												value={fstep.args.N?.t === 'num' ? fstep.args.N.v : 8}
+												onchange={(n) => (fstep.args.N = { t: 'num', v: n })}
 											/>
 											<span class="text-sm font-black text-indigo-600">times</span>
-											<span class="text-[10px] font-bold text-indigo-400">(up to {LOOP_MAX})</span>
 											<div class="ml-auto flex items-center gap-1">
 												<button
 													onclick={() => moveFuncStep(fi, si, -1)}
@@ -548,6 +610,7 @@
 								/>
 							</div>
 						</div>
+						{/if}
 					</div>
 				{/each}
 			</div>
@@ -558,22 +621,16 @@
 		>
 			<div
 				bind:this={previewEl}
+				onclick={() => {
+					if (previewFullscreen) document.exitFullscreen().catch(() => {});
+				}}
 				class="relative shrink-0 overflow-hidden bg-black shadow-lg ring-1 ring-indigo-100 {previewFullscreen
-					? 'flex h-screen w-screen items-center justify-center rounded-none'
+					? 'flex h-screen w-screen cursor-pointer items-center justify-center rounded-none'
 					: 'aspect-square w-full rounded-2xl'}"
 			>
 				<div class={previewFullscreen ? 'size-[min(100vw,100vh)]' : 'h-full w-full'}>
 					<Preview source={compiled.main} />
 				</div>
-				<button
-					onclick={togglePreviewFullscreen}
-					aria-label={previewFullscreen ? 'exit fullscreen' : 'enter fullscreen'}
-					class="absolute top-2 right-2 z-10 rounded-full bg-black/45 p-2 text-white backdrop-blur-sm transition hover:bg-black/65 active:scale-95"
-				>
-					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256" aria-hidden="true">
-						<path d="M93.66,202.34A8,8,0,0,1,88,216H48a8,8,0,0,1-8-8V168a8,8,0,0,1,13.66-5.66ZM88,40H48a8,8,0,0,0-8,8V88a8,8,0,0,0,13.66,5.66l40-40A8,8,0,0,0,88,40ZM211.06,160.61a8,8,0,0,0-8.72,1.73l-40,40A8,8,0,0,0,168,216h40a8,8,0,0,0,8-8V168A8,8,0,0,0,211.06,160.61ZM208,40H168a8,8,0,0,0-5.66,13.66l40,40A8,8,0,0,0,216,88V48A8,8,0,0,0,208,40Z"></path>
-					</svg>
-				</button>
 			</div>
 
 			<div>
