@@ -191,23 +191,6 @@
 				</div>
 			</div>
 
-			<p class="text-xs leading-relaxed text-slate-400">
-				Each step makes one thing and shows a tiny preview of it. Click any
-				<span class="font-bold text-indigo-500">chip</span> to swap in what the pixel knows
-				(<span class="font-bold text-orange-500">x</span>,
-				<span class="font-bold text-orange-500">y</span>,
-				<span class="font-bold text-orange-500">time</span>...), one of
-				<span class="font-bold text-sky-600">your steps</span>, a number, or a color. The green
-				line at the bottom decides what every pixel looks like.
-			</p>
-
-			<a
-				href="mailto:andrew@variancestudios.com"
-				class="self-end text-xs font-medium text-slate-400 transition hover:text-indigo-500"
-			>
-				andrew@variancestudios.com
-			</a>
-
 			<div class="mt-auto border-t border-indigo-100 pt-4">
 				<div class="mb-2 flex items-center justify-between">
 					<h2 class="text-xs font-bold tracking-widest text-violet-400 uppercase">
@@ -249,6 +232,13 @@
 					{/if}
 				</div>
 			</div>
+
+			<a
+				href="mailto:andrew@variancestudios.com"
+				class="self-end text-xs font-medium text-slate-400 transition hover:text-indigo-500"
+			>
+				andrew@variancestudios.com
+			</a>
 		</aside>
 	</main>
 </div>
