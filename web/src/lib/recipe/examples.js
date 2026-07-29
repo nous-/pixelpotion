@@ -1096,59 +1096,6 @@ export const families = [
 		]
 	},
 	{
-		name: 'Sunset',
-		dim: 'scene',
-		section: 'gallery',
-		tiers: [
-			{
-				label: 'small',
-				program: {
-					steps: [
-						{ id: 'a', name: 'paint', op: 'mix', args: { A: col('#ff9a5a'), B: col('#2b1a67'), T: inp('y') } }
-					],
-					color: ref('a')
-				}
-			},
-			{
-				label: 'medium',
-				program: {
-					steps: [
-						{ id: 'a', name: 'sky', op: 'mix', args: { A: col('#ff9a5a'), B: col('#2b1a67'), T: inp('y') } },
-						{ id: 'b', name: 'to sun x', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
-						{ id: 'c', name: 'to sun y', op: 'sub', args: { A: inp('y'), B: num(0.35) } },
-						{ id: 'd', name: 'xx', op: 'mul', args: { A: ref('b'), B: ref('b') } },
-						{ id: 'e', name: 'yy', op: 'mul', args: { A: ref('c'), B: ref('c') } },
-						{ id: 'f', name: 'apart', op: 'add', args: { A: ref('d'), B: ref('e') } },
-						{ id: 'g', name: 'sun', op: 'div', args: { A: num(0.01), B: ref('f') } },
-						{ id: 'h', name: 'paint', op: 'mix', args: { A: ref('a'), B: col('#ffd76a'), T: ref('g') } }
-					],
-					color: ref('h')
-				}
-			},
-			{
-				label: 'big',
-				program: {
-					steps: [
-						{ id: 'a', name: 'sky', op: 'mix', args: { A: col('#ff9a5a'), B: col('#2b1a67'), T: inp('y') } },
-						{ id: 'b', name: 'to sun x', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
-						{ id: 'c', name: 'to sun y', op: 'sub', args: { A: inp('y'), B: num(0.35) } },
-						{ id: 'd', name: 'xx', op: 'mul', args: { A: ref('b'), B: ref('b') } },
-						{ id: 'e', name: 'yy', op: 'mul', args: { A: ref('c'), B: ref('c') } },
-						{ id: 'f', name: 'apart', op: 'add', args: { A: ref('d'), B: ref('e') } },
-						{ id: 'g', name: 'sun', op: 'div', args: { A: num(0.01), B: ref('f') } },
-						{ id: 'h', name: 'glow', op: 'mix', args: { A: ref('a'), B: col('#ffd76a'), T: ref('g') } },
-						{ id: 'i', name: 'shimmer', op: 'noise', args: { N: num(8) } },
-						{ id: 'j', name: 'below', op: 'sub', args: { A: num(0.35), B: inp('y') } },
-						{ id: 'k', name: 'water', op: 'mul', args: { A: ref('j'), B: num(3) } },
-						{ id: 'l', name: 'shine', op: 'mul', args: { A: ref('i'), B: ref('k') } },
-						{ id: 'm', name: 'paint', op: 'mix', args: { A: ref('h'), B: col('#ffb36b'), T: ref('l') } }
-					],
-					color: ref('m')
-				}
-			}
-		]
-	},
-	{
 		name: 'Heart',
 		dim: 'beat',
 		section: 'gallery',
@@ -1648,7 +1595,591 @@ export const families = [
 				}
 			}
 		]
+	},
+	{
+		name: 'Shapes',
+		section: 'gallery',
+		dim: '2D',
+		tiers: [
+			{
+				label: 'small',
+				program: {
+					steps: [
+						...shapeCoords,
+						{ id: 'xx', name: 'xx', op: 'mul', args: { A: ref('px0'), B: ref('px0') } },
+						{ id: 'yy', name: 'yy', op: 'mul', args: { A: ref('py0'), B: ref('py0') } },
+						{ id: 'rr', name: 'rr', op: 'add', args: { A: ref('xx'), B: ref('yy') } },
+						{ id: 'r', name: 'r', op: 'sqrt', args: { A: ref('rr') } },
+						{ id: 'd', name: 'd', op: 'sub', args: { A: ref('r'), B: num(0.5) } },
+						{ id: 'sm', name: 'sm', op: 'smoothstep', args: { A: num(0), B: num(0.01), T: ref('d') } },
+						{ id: 'fill', name: 'circle', op: 'sub', args: { A: num(1), B: ref('sm') } },
+						{
+							id: 'paint',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0f172a'), B: col('#1e90ff'), T: ref('fill') }
+						}
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				label: 'medium',
+				program: {
+					steps: [
+						...shapeCoords,
+						...shapeCircle,
+						...shapeBox,
+						{
+							id: 'p1',
+							name: 'with circle',
+							op: 'mix',
+							args: { A: col('#0f172a'), B: col('#1e90ff'), T: ref('cfill') }
+						},
+						{
+							id: 'paint',
+							name: 'paint',
+							op: 'mix',
+							args: { A: ref('p1'), B: col('#ffa502'), T: ref('bfill') }
+						}
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				label: 'big',
+				program: {
+					steps: [
+						...shapeCoords,
+						...shapeCircle,
+						...shapeBox,
+						...shapeLine,
+						...shapeCurve,
+						{
+							id: 'p1',
+							name: 'with circle',
+							op: 'mix',
+							args: { A: col('#0f172a'), B: col('#1e90ff'), T: ref('cfill') }
+						},
+						{
+							id: 'p2',
+							name: 'with box',
+							op: 'mix',
+							args: { A: ref('p1'), B: col('#ffa502'), T: ref('bfill') }
+						},
+						{
+							id: 'p3',
+							name: 'with line',
+							op: 'mix',
+							args: { A: ref('p2'), B: col('#2ed573'), T: ref('lstroke') }
+						},
+						{
+							id: 'paint',
+							name: 'paint',
+							op: 'mix',
+							args: { A: ref('p3'), B: col('#e84393'), T: ref('vstroke') }
+						}
+					],
+					color: ref('paint')
+				}
+			}
+		]
+	},
+	{
+		name: 'Loops',
+		section: 'gallery',
+		dim: 'repeat',
+		tiers: [
+			{
+				// Five rings, one per lap: the radius grows with lap.
+				label: 'small',
+				program: {
+					steps: [
+						loop('rings', 5, [
+							{ id: 'grow', name: 'grow', op: 'mul', args: { A: inp('lap'), B: num(0.22) } },
+							{ id: 'rad', name: 'radius', op: 'add', args: { A: ref('grow'), B: num(0.12) } },
+							{ id: 'away', name: 'away', op: 'sub', args: { A: inp('dist'), B: ref('rad') } },
+							{ id: 'ab', name: 'ab', op: 'abs', args: { A: ref('away') } },
+							{
+								id: 'sm',
+								name: 'sm',
+								op: 'smoothstep',
+								args: { A: num(0), B: num(0.02), T: ref('ab') }
+							},
+							{ id: 'ring', name: 'ring', op: 'sub', args: { A: num(1), B: ref('sm') } },
+							{ id: 'acc', name: 'rings', op: 'add', args: { A: ref('acc'), B: ref('ring') } }
+						]),
+						{
+							id: 'paint',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0b1020'), B: col('#7de2ff'), T: ref('acc') }
+						}
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				// Six glowing dots spaced around a circle, spinning: lap
+				// picks each dot's angle, acc collects all their glows.
+				label: 'medium',
+				program: {
+					steps: [
+						loop('dots', 6, [
+							{ id: 'frac', name: 'frac', op: 'div', args: { A: inp('lap'), B: num(6) } },
+							{ id: 'turn', name: 'turn', op: 'mul', args: { A: inp('time'), B: num(0.15) } },
+							{ id: 'spun', name: 'spun', op: 'add', args: { A: ref('frac'), B: ref('turn') } },
+							{ id: 'ang', name: 'ang', op: 'mul', args: { A: ref('spun'), B: num(6.2832) } },
+							{ id: 'cx0', name: 'cx0', op: 'cos', args: { A: ref('ang') } },
+							{ id: 'cx1', name: 'cx1', op: 'mul', args: { A: ref('cx0'), B: num(0.3) } },
+							{ id: 'cx', name: 'dot x', op: 'add', args: { A: ref('cx1'), B: num(0.5) } },
+							{ id: 'cy0', name: 'cy0', op: 'sin', args: { A: ref('ang') } },
+							{ id: 'cy1', name: 'cy1', op: 'mul', args: { A: ref('cy0'), B: num(0.3) } },
+							{ id: 'cy', name: 'dot y', op: 'add', args: { A: ref('cy1'), B: num(0.5) } },
+							{ id: 'dx', name: 'dx', op: 'sub', args: { A: inp('x'), B: ref('cx') } },
+							{ id: 'dy', name: 'dy', op: 'sub', args: { A: inp('y'), B: ref('cy') } },
+							{ id: 'xx', name: 'xx', op: 'mul', args: { A: ref('dx'), B: ref('dx') } },
+							{ id: 'yy', name: 'yy', op: 'mul', args: { A: ref('dy'), B: ref('dy') } },
+							{ id: 'rr', name: 'apart', op: 'add', args: { A: ref('xx'), B: ref('yy') } },
+							{ id: 'g', name: 'glow', op: 'div', args: { A: num(0.002), B: ref('rr') } },
+							{ id: 'acc', name: 'all glow', op: 'add', args: { A: ref('acc'), B: ref('g') } }
+						]),
+						{
+							id: 'paint',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#10142a'), B: col('#ffd43b'), T: ref('acc') }
+						}
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				// A comet: eight balls chase the same wavy path, each lap
+				// a bit further back in time and a new rainbow color. The
+				// collector step holds a color this time!
+				label: 'big',
+				program: {
+					steps: [
+						loop('comet', 8, [
+							{ id: 'frac', name: 'frac', op: 'div', args: { A: inp('lap'), B: num(8) } },
+							{ id: 'back', name: 'back', op: 'mul', args: { A: inp('lap'), B: num(0.15) } },
+							{ id: 'ti', name: 'earlier', op: 'sub', args: { A: inp('time'), B: ref('back') } },
+							{ id: 'sx', name: 'sx', op: 'mul', args: { A: ref('ti'), B: num(0.31) } },
+							{ id: 'bx', name: 'ball x', op: 'wave', args: { N: ref('sx') } },
+							{ id: 'sy', name: 'sy', op: 'mul', args: { A: ref('ti'), B: num(0.23) } },
+							{ id: 'by', name: 'ball y', op: 'wave', args: { N: ref('sy') } },
+							{ id: 'dx', name: 'dx', op: 'sub', args: { A: inp('x'), B: ref('bx') } },
+							{ id: 'dy', name: 'dy', op: 'sub', args: { A: inp('y'), B: ref('by') } },
+							{ id: 'xx', name: 'xx', op: 'mul', args: { A: ref('dx'), B: ref('dx') } },
+							{ id: 'yy', name: 'yy', op: 'mul', args: { A: ref('dy'), B: ref('dy') } },
+							{ id: 'rr', name: 'apart', op: 'add', args: { A: ref('xx'), B: ref('yy') } },
+							{ id: 'g', name: 'glow', op: 'div', args: { A: num(0.0015), B: ref('rr') } },
+							{ id: 'tint', name: 'tint', op: 'rainbow', args: { N: ref('frac') } },
+							{ id: 'gcol', name: 'lit', op: 'mul', args: { A: ref('tint'), B: ref('g') } },
+							{ id: 'acc', name: 'comet', op: 'add', args: { A: ref('acc'), B: ref('gcol') } }
+						])
+					],
+					color: ref('acc')
+				}
+			}
+		]
+	},
+	{
+		name: 'Ripples',
+		section: 'gallery',
+		dim: 'waves',
+		tiers: [
+			{
+				label: 'small',
+				program: {
+					steps: [
+						{ id: 'a', name: 'rings', op: 'mul', args: { A: inp('dist'), B: num(4) } },
+						{ id: 'b', name: 'glow', op: 'wave', args: { N: ref('a') } },
+						{ id: 'c', name: 'paint', op: 'mix', args: { A: col('#10216b'), B: col('#7de2ff'), T: ref('b') } }
+					],
+					color: ref('c')
+				}
+			},
+			{
+				label: 'medium',
+				program: {
+					steps: [
+						{ id: 'a', name: 'rings', op: 'mul', args: { A: inp('dist'), B: num(4) } },
+						{ id: 'b', name: 'moving', op: 'sub', args: { A: ref('a'), B: inp('time') } },
+						{ id: 'c', name: 'glow', op: 'wave', args: { N: ref('b') } },
+						{ id: 'd', name: 'paint', op: 'mix', args: { A: col('#10216b'), B: col('#7de2ff'), T: ref('c') } }
+					],
+					color: ref('d')
+				}
+			},
+			{
+				label: 'big',
+				program: {
+					steps: [
+						{ id: 'a', name: 'rings', op: 'mul', args: { A: inp('dist'), B: num(5) } },
+						{ id: 'b', name: 'move', op: 'sub', args: { A: ref('a'), B: inp('time') } },
+						{ id: 'c', name: 'wave 1', op: 'wave', args: { N: ref('b') } },
+						{ id: 'd', name: 'off x', op: 'sub', args: { A: inp('x'), B: num(0.8) } },
+						{ id: 'e', name: 'off y', op: 'sub', args: { A: inp('y'), B: num(0.8) } },
+						{ id: 'f', name: 'xx', op: 'mul', args: { A: ref('d'), B: ref('d') } },
+						{ id: 'g', name: 'yy', op: 'mul', args: { A: ref('e'), B: ref('e') } },
+						{ id: 'h', name: 'apart', op: 'add', args: { A: ref('f'), B: ref('g') } },
+						{ id: 'i', name: 'rings 2', op: 'mul', args: { A: ref('h'), B: num(40) } },
+						{ id: 'j', name: 'move 2', op: 'sub', args: { A: ref('i'), B: inp('time') } },
+						{ id: 'k', name: 'wave 2', op: 'wave', args: { N: ref('j') } },
+						{ id: 'l', name: 'overlap', op: 'mul', args: { A: ref('c'), B: ref('k') } },
+						{ id: 'm', name: 'paint', op: 'mix', args: { A: col('#051433'), B: col('#9be8ff'), T: ref('l') } }
+					],
+					color: ref('m')
+				}
+			}
+		]
+	},
+	{
+		name: 'Pinwheel',
+		section: 'gallery',
+		dim: 'spin',
+		tiers: [
+			{
+				label: 'small',
+				program: {
+					steps: [{ id: 'a', name: 'paint', op: 'rainbow', args: { N: inp('angle') } }],
+					color: ref('a')
+				}
+			},
+			{
+				label: 'medium',
+				program: {
+					steps: [
+						{ id: 'a', name: 'spin', op: 'mul', args: { A: inp('time'), B: num(0.1) } },
+						{ id: 'b', name: 'turn', op: 'add', args: { A: inp('angle'), B: ref('a') } },
+						{ id: 'c', name: 'paint', op: 'rainbow', args: { N: ref('b') } }
+					],
+					color: ref('c')
+				}
+			},
+			{
+				label: 'big',
+				program: {
+					steps: [
+						{ id: 'a', name: 'spin', op: 'mul', args: { A: inp('time'), B: num(0.15) } },
+						{ id: 'b', name: 'turn', op: 'add', args: { A: inp('angle'), B: ref('a') } },
+						{ id: 'c', name: 'twist', op: 'mul', args: { A: inp('dist'), B: num(2) } },
+						{ id: 'd', name: 'spiral', op: 'add', args: { A: ref('b'), B: ref('c') } },
+						{ id: 'e', name: 'colors', op: 'rainbow', args: { N: ref('d') } },
+						{ id: 'f', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
+						{ id: 'g', name: 'paint', op: 'mul', args: { A: ref('e'), B: ref('f') } }
+					],
+					color: ref('g')
+				}
+			}
+		]
+	},
+	{
+		name: 'Sunburst',
+		section: 'gallery',
+		dim: '2D',
+		tiers: [
+			{
+				label: 'small',
+				program: {
+					steps: [
+						{ id: 'a', name: 'rays', op: 'mul', args: { A: inp('angle'), B: num(8) } },
+						{ id: 'b', name: 'shine', op: 'wave', args: { N: ref('a') } },
+						{ id: 'c', name: 'paint', op: 'mix', args: { A: col('#e8590c'), B: col('#ffe14d'), T: ref('b') } }
+					],
+					color: ref('c')
+				}
+			},
+			{
+				label: 'medium',
+				program: {
+					steps: [
+						{ id: 'a', name: 'spin', op: 'mul', args: { A: inp('time'), B: num(0.05) } },
+						{ id: 'b', name: 'turn', op: 'add', args: { A: inp('angle'), B: ref('a') } },
+						{ id: 'c', name: 'rays', op: 'mul', args: { A: ref('b'), B: num(12) } },
+						{ id: 'd', name: 'shine', op: 'wave', args: { N: ref('c') } },
+						{ id: 'e', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
+						{ id: 'f', name: 'glow', op: 'mul', args: { A: ref('d'), B: ref('e') } },
+						{ id: 'g', name: 'paint', op: 'mix', args: { A: col('#3b0a45'), B: col('#ffd43b'), T: ref('f') } }
+					],
+					color: ref('g')
+				}
+			},
+			{
+				label: 'big',
+				program: {
+					steps: [
+						{ id: 'a', name: 'spin', op: 'mul', args: { A: inp('time'), B: num(0.08) } },
+						{ id: 'b', name: 'turn', op: 'add', args: { A: inp('angle'), B: ref('a') } },
+						{ id: 'c', name: 'rays', op: 'mul', args: { A: ref('b'), B: num(10) } },
+						{ id: 'd', name: 'shine', op: 'wave', args: { N: ref('c') } },
+						{ id: 'e', name: 'rings', op: 'mul', args: { A: inp('dist'), B: num(5) } },
+						{ id: 'f', name: 'pulse', op: 'sub', args: { A: ref('e'), B: inp('time') } },
+						{ id: 'g', name: 'beat', op: 'wave', args: { N: ref('f') } },
+						{ id: 'h', name: 'sparkle', op: 'mul', args: { A: ref('d'), B: ref('g') } },
+						{ id: 'i', name: 'swirl', op: 'add', args: { A: ref('b'), B: inp('dist') } },
+						{ id: 'j', name: 'colors', op: 'rainbow', args: { N: ref('i') } },
+						{ id: 'k', name: 'paint', op: 'mix', args: { A: col('#10041c'), B: ref('j'), T: ref('h') } }
+					],
+					color: ref('k')
+				}
+			}
+		]
+	},
+	{
+		name: 'Plasma',
+		section: 'gallery',
+		dim: 'waves',
+		tiers: [
+			{
+				label: 'small',
+				program: {
+					steps: [
+						{ id: 'a', name: 'stripes', op: 'mul', args: { A: inp('x'), B: num(3) } },
+						{ id: 'b', name: 'moving', op: 'add', args: { A: ref('a'), B: inp('time') } },
+						{ id: 'c', name: 'soft', op: 'wave', args: { N: ref('b') } },
+						{ id: 'd', name: 'paint', op: 'rainbow', args: { N: ref('c') } }
+					],
+					color: ref('d')
+				}
+			},
+			{
+				label: 'medium',
+				program: {
+					steps: [
+						{ id: 'a', name: 'stripes', op: 'mul', args: { A: inp('x'), B: num(3) } },
+						{ id: 'b', name: 'moving 1', op: 'add', args: { A: ref('a'), B: inp('time') } },
+						{ id: 'c', name: 'wave 1', op: 'wave', args: { N: ref('b') } },
+						{ id: 'd', name: 'bands', op: 'mul', args: { A: inp('y'), B: num(2) } },
+						{ id: 'e', name: 'slow time', op: 'mul', args: { A: inp('time'), B: num(0.7) } },
+						{ id: 'f', name: 'moving 2', op: 'add', args: { A: ref('d'), B: ref('e') } },
+						{ id: 'g', name: 'wave 2', op: 'wave', args: { N: ref('f') } },
+						{ id: 'h', name: 'both', op: 'mix', args: { A: ref('c'), B: ref('g'), T: num(0.5) } },
+						{ id: 'i', name: 'paint', op: 'rainbow', args: { N: ref('h') } }
+					],
+					color: ref('i')
+				}
+			},
+			{
+				label: 'big',
+				program: {
+					steps: [
+						{ id: 'a', name: 'stripes', op: 'mul', args: { A: inp('x'), B: num(3) } },
+						{ id: 'b', name: 'moving 1', op: 'add', args: { A: ref('a'), B: inp('time') } },
+						{ id: 'c', name: 'wave 1', op: 'wave', args: { N: ref('b') } },
+						{ id: 'd', name: 'bands', op: 'mul', args: { A: inp('y'), B: num(2) } },
+						{ id: 'e', name: 'slow time', op: 'mul', args: { A: inp('time'), B: num(0.7) } },
+						{ id: 'f', name: 'moving 2', op: 'add', args: { A: ref('d'), B: ref('e') } },
+						{ id: 'g', name: 'wave 2', op: 'wave', args: { N: ref('f') } },
+						{ id: 'h', name: 'both', op: 'mix', args: { A: ref('c'), B: ref('g'), T: num(0.5) } },
+						{ id: 'i', name: 'rings', op: 'mul', args: { A: inp('dist'), B: num(3) } },
+						{ id: 'j', name: 'ring move', op: 'sub', args: { A: ref('i'), B: inp('time') } },
+						{ id: 'k', name: 'wave 3', op: 'wave', args: { N: ref('j') } },
+						{ id: 'l', name: 'all', op: 'mix', args: { A: ref('h'), B: ref('k'), T: num(0.4) } },
+						{ id: 'm', name: 'paint', op: 'rainbow', args: { N: ref('l') } }
+					],
+					color: ref('m')
+				}
+			}
+		]
+	},
+	{
+		name: 'Clouds',
+		section: 'gallery',
+		dim: 'noise',
+		tiers: [
+			{
+				// One drifting fbm loop of simplex noise over a sky
+				// gradient: the simplest cloud there is.
+				label: 'small',
+				program: {
+					steps: [
+						fst('ux0', 'mul', { A: inp('x'), B: num(2) }),
+						fst('uy0', 'mul', { A: inp('y'), B: num(2) }),
+						fst('tm', 'mul', { A: inp('time'), B: num(0.05) }, 'drift'),
+						fst('sx0', 'add', { A: ref('ux0'), B: ref('tm') }),
+						cloudLoop('s', {
+							laps: 5,
+							w0: 1,
+							decay: 0.6,
+							ridged: false,
+							seedX: 'sx0',
+							seedY: 'uy0',
+							timeRef: 'tm'
+						}),
+						fst('cov1', 'mul', { A: ref('sacc'), B: num(1.5) }),
+						fst('cover', 'add', { A: ref('cov1'), B: num(0.25) }),
+						fst('sky', 'mix', { A: col('#66b3ff'), B: col('#336699'), T: inp('y') }),
+						fst('paint', 'mix', { A: ref('sky'), B: col('#ffffff'), T: ref('cover') })
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				// Two loops like the real thing: a soft shape and a
+				// ridged one (abs of each term), sharpened by f*(r+f).
+				label: 'medium',
+				program: {
+					steps: [
+						fst('ux0', 'mul', { A: inp('x'), B: num(1.5) }),
+						fst('uy0', 'mul', { A: inp('y'), B: num(1.5) }),
+						fst('tm', 'mul', { A: inp('time'), B: num(0.04) }, 'drift'),
+						fst('sx0', 'add', { A: ref('ux0'), B: ref('tm') }),
+						cloudLoop('f', {
+							laps: 6,
+							w0: 0.7,
+							decay: 0.6,
+							ridged: false,
+							seedX: 'sx0',
+							seedY: 'uy0',
+							timeRef: 'tm'
+						}),
+						cloudLoop('r', {
+							laps: 6,
+							w0: 0.8,
+							decay: 0.7,
+							ridged: true,
+							seedX: 'sx0',
+							seedY: 'uy0',
+							timeRef: 'tm'
+						}),
+						fst('fr', 'add', { A: ref('racc'), B: ref('facc') }),
+						fst('ff', 'mul', { A: ref('facc'), B: ref('fr') }, 'shape'),
+						fst('cov1', 'mul', { A: ref('ff'), B: num(4) }),
+						fst('cover', 'add', { A: ref('cov1'), B: num(0.2) }),
+						fst('cb1', 'mul', { A: ref('facc'), B: num(0.3) }),
+						fst('cb2', 'add', { A: ref('cb1'), B: num(0.55) }),
+						fst('cb', 'clamp', { A: ref('cb2'), LO: num(0), HI: num(1) }, 'bright'),
+						fst('cloudc', 'mix', { A: col('#8fa3b0'), B: col('#fffbe6'), T: ref('cb') }),
+						fst('sky', 'mix', { A: col('#66b3ff'), B: col('#336699'), T: inp('y') }),
+						fst('paint', 'mix', { A: ref('sky'), B: ref('cloudc'), T: ref('cover') })
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				// The real thing: q = fbm warps everything, then four
+				// loops - ridged shape r, soft shape f, colour c and
+				// ridged colour c1 - exactly like the original.
+				label: 'big',
+				program: {
+					steps: [
+						// q = fbm(uv * cloudscale * 0.5)
+						fst('qx0', 'mul', { A: inp('x'), B: num(0.55) }),
+						fst('qy0', 'mul', { A: inp('y'), B: num(0.55) }),
+						cloudLoop('q', {
+							laps: 7,
+							w0: 0.1,
+							decay: 0.4,
+							ridged: false,
+							seedX: 'qx0',
+							seedY: 'qy0',
+							timeRef: null
+						}),
+						// uv*cloudscale - (q - time), shared by r and f
+						fst('t1', 'mul', { A: inp('time'), B: num(0.03) }, 'drift'),
+						fst('sx1', 'mul', { A: inp('x'), B: num(1.1) }),
+						fst('sx2', 'sub', { A: ref('sx1'), B: ref('qacc') }),
+						fst('rx0', 'add', { A: ref('sx2'), B: ref('t1') }),
+						fst('sy1', 'mul', { A: inp('y'), B: num(1.1) }),
+						fst('sy2', 'sub', { A: ref('sy1'), B: ref('qacc') }),
+						fst('ry0', 'add', { A: ref('sy2'), B: ref('t1') }),
+						cloudLoop('r', {
+							laps: 8,
+							w0: 0.8,
+							decay: 0.7,
+							ridged: true,
+							seedX: 'rx0',
+							seedY: 'ry0',
+							timeRef: 't1'
+						}),
+						cloudLoop('f', {
+							laps: 8,
+							w0: 0.7,
+							decay: 0.6,
+							ridged: false,
+							seedX: 'rx0',
+							seedY: 'ry0',
+							timeRef: 't1'
+						}),
+						fst('fr', 'add', { A: ref('racc'), B: ref('facc') }),
+						fst('ff', 'mul', { A: ref('facc'), B: ref('fr') }, 'shape'),
+						// colour loop at 2x scale, double speed
+						fst('t2', 'mul', { A: inp('time'), B: num(0.06) }),
+						fst('cx1', 'mul', { A: inp('x'), B: num(2.2) }),
+						fst('cx2', 'sub', { A: ref('cx1'), B: ref('qacc') }),
+						fst('cx0', 'add', { A: ref('cx2'), B: ref('t2') }),
+						fst('cy1', 'mul', { A: inp('y'), B: num(2.2) }),
+						fst('cy2', 'sub', { A: ref('cy1'), B: ref('qacc') }),
+						fst('cy0', 'add', { A: ref('cy2'), B: ref('t2') }),
+						cloudLoop('c', {
+							laps: 7,
+							w0: 0.4,
+							decay: 0.6,
+							ridged: false,
+							seedX: 'cx0',
+							seedY: 'cy0',
+							timeRef: 't2'
+						}),
+						// ridged colour loop at 3x scale, triple speed
+						fst('t3', 'mul', { A: inp('time'), B: num(0.09) }),
+						fst('dx1', 'mul', { A: inp('x'), B: num(3.3) }),
+						fst('dx2', 'sub', { A: ref('dx1'), B: ref('qacc') }),
+						fst('dx0', 'add', { A: ref('dx2'), B: ref('t3') }),
+						fst('dy1', 'mul', { A: inp('y'), B: num(3.3) }),
+						fst('dy2', 'sub', { A: ref('dy1'), B: ref('qacc') }),
+						fst('dy0', 'add', { A: ref('dy2'), B: ref('t3') }),
+						cloudLoop('d', {
+							laps: 7,
+							w0: 0.4,
+							decay: 0.6,
+							ridged: true,
+							seedX: 'dx0',
+							seedY: 'dy0',
+							timeRef: 't3'
+						}),
+						fst('ctot', 'add', { A: ref('cacc'), B: ref('dacc') }, 'colour'),
+						// sky gradient per channel: mix(sky2, sky1, y)
+						fst('sr1', 'mul', { A: inp('y'), B: num(-0.2) }),
+						fst('sr', 'add', { A: ref('sr1'), B: num(0.4) }, 'sky r'),
+						fst('sg1', 'mul', { A: inp('y'), B: num(-0.3) }),
+						fst('sg', 'add', { A: ref('sg1'), B: num(0.7) }, 'sky g'),
+						fst('sb1', 'mul', { A: inp('y'), B: num(-0.4) }),
+						fst('sb', 'add', { A: ref('sb1'), B: num(1) }, 'sky b'),
+						// cloudcolour = (1.1,1.1,0.9)*clamp(0.5 + 0.3c)
+						fst('cb1', 'mul', { A: ref('ctot'), B: num(0.3) }),
+						fst('cb2', 'add', { A: ref('cb1'), B: num(0.5) }),
+						fst('cb', 'clamp', { A: ref('cb2'), LO: num(0), HI: num(1) }, 'bright'),
+						// lit sky = clamp(0.5*sky + cloudcolour), per channel
+						fst('lr1', 'mul', { A: ref('sr'), B: num(0.5) }),
+						fst('lr2', 'mul', { A: ref('cb'), B: num(1.1) }),
+						fst('lr3', 'add', { A: ref('lr1'), B: ref('lr2') }),
+						fst('lr', 'clamp', { A: ref('lr3'), LO: num(0), HI: num(1) }, 'lit r'),
+						fst('lg1', 'mul', { A: ref('sg'), B: num(0.5) }),
+						fst('lg3', 'add', { A: ref('lg1'), B: ref('lr2') }),
+						fst('lg', 'clamp', { A: ref('lg3'), LO: num(0), HI: num(1) }, 'lit g'),
+						fst('lb1', 'mul', { A: ref('sb'), B: num(0.5) }),
+						fst('lb2', 'mul', { A: ref('cb'), B: num(0.9) }),
+						fst('lb3', 'add', { A: ref('lb1'), B: ref('lb2') }),
+						fst('lb', 'clamp', { A: ref('lb3'), LO: num(0), HI: num(1) }, 'lit b'),
+						// f = cloudcover + cloudalpha*f*r; mix by f + c
+						fst('fa', 'mul', { A: ref('ff'), B: ref('racc') }),
+						fst('fb', 'mul', { A: ref('fa'), B: num(8) }),
+						fst('fcov', 'add', { A: ref('fb'), B: num(0.2) }, 'cover'),
+						fst('tmv', 'add', { A: ref('fcov'), B: ref('ctot') }),
+						fst('resr', 'mix', { A: ref('sr'), B: ref('lr'), T: ref('tmv') }),
+						fst('resg', 'mix', { A: ref('sg'), B: ref('lg'), T: ref('tmv') }),
+						fst('resb', 'mix', { A: ref('sb'), B: ref('lb'), T: ref('tmv') }),
+						fst('paint', 'rgb', { R: ref('resr'), G: ref('resg'), B: ref('resb') })
+					],
+					color: ref('paint')
+				}
+			}
+		]
 	}
+
 ];
 
 /** "Start fresh": Pulse glow — one wave of time so the screen is alive. */
@@ -1656,4 +2187,29 @@ export const freshProgram = {
 	steps: [{ id: 'a', name: 'glow', op: 'wave', args: { N: inp('time') } }],
 	color: ref('a')
 };
+
+export const potionSlug = (s) => s.toLowerCase().replace(/\s+/g, '-');
+
+export function potionPath(familyName, tierLabel) {
+	return `/p/${potionSlug(familyName)}/${potionSlug(tierLabel)}`;
+}
+
+export function findPotion(familySlug, tierSlug) {
+	for (const family of families) {
+		if (potionSlug(family.name) !== familySlug) continue;
+		const tier = family.tiers.find((t) => potionSlug(t.label) === tierSlug);
+		if (tier) return { family, tier };
+	}
+	return null;
+}
+
+/** Every family/tier pair — used to prerender potion routes. */
+export function potionEntries() {
+	return families.flatMap((family) =>
+		family.tiers.map((tier) => ({
+			family: potionSlug(family.name),
+			tier: potionSlug(tier.label)
+		}))
+	);
+}
 

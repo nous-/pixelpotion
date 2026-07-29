@@ -433,6 +433,10 @@ const IN_TO_FN = {
 	angle: { stepId: '__angle', fn: 'fn:angle', name: 'angle' }
 };
 
+// Bump when stock library bodies change or need to heal corrupt saves.
+// On mismatch, default funcs are replaced; user-made funcs are kept.
+const LIBRARY_VERSION = 2;
+
 /**
  * Upgrades a program in place: old baked-in ops become library calls, and
  * the default functions are (re)added if missing so those calls resolve.
@@ -471,8 +475,18 @@ export function migrateProgram(program) {
 		}
 	}
 
-	for (const d of DEFAULT_FUNCS) {
-		if (!program.funcs.some((f) => f.id === d.id)) program.funcs.push(structuredClone(d));
+	const stockIds = new Set(DEFAULT_FUNCS.map((d) => d.id));
+	if (program.libraryVersion !== LIBRARY_VERSION) {
+		// Replace corrupt/outdated stock funcs; keep anything the kid made.
+		program.funcs = [
+			...DEFAULT_FUNCS.map((d) => structuredClone(d)),
+			...program.funcs.filter((f) => !stockIds.has(f.id))
+		];
+		program.libraryVersion = LIBRARY_VERSION;
+	} else {
+		for (const d of DEFAULT_FUNCS) {
+			if (!program.funcs.some((f) => f.id === d.id)) program.funcs.push(structuredClone(d));
+		}
 	}
 	return program;
 }
