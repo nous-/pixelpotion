@@ -328,37 +328,30 @@ export const DEFAULT_FUNCS = [
 		id: 'rainbow',
 		name: 'rainbow',
 		params: [{ id: 'N', name: 'n' }],
+		// Three sines a third of a turn apart. abs keeps each channel in 0..1
+		// without the extra half/lift that wave adds.
 		steps: [
-			st('rb1', 'floor', { A: P }),
-			st('rb2', 'sub', { A: P, B: { t: 'step', id: 'rb1' } }, 'hue'),
-			st('rb3', 'mul', { A: { t: 'step', id: 'rb2' }, B: { t: 'num', v: 6 } }),
-			st('rb4', 'sub', { A: { t: 'step', id: 'rb3' }, B: { t: 'num', v: 3 } }),
-			st('rb5', 'abs', { A: { t: 'step', id: 'rb4' } }),
-			st('rb6', 'sub', { A: { t: 'step', id: 'rb5' }, B: { t: 'num', v: 1 } }),
-			st('rb7', 'clamp', { A: { t: 'step', id: 'rb6' }, LO: { t: 'num', v: 0 }, HI: { t: 'num', v: 1 } }, 'red'),
-			st('rb8', 'add', { A: { t: 'step', id: 'rb2' }, B: { t: 'num', v: 0.6667 } }),
-			st('rb9', 'floor', { A: { t: 'step', id: 'rb8' } }),
-			st('rb10', 'sub', { A: { t: 'step', id: 'rb8' }, B: { t: 'step', id: 'rb9' } }),
-			st('rb11', 'mul', { A: { t: 'step', id: 'rb10' }, B: { t: 'num', v: 6 } }),
-			st('rb12', 'sub', { A: { t: 'step', id: 'rb11' }, B: { t: 'num', v: 3 } }),
-			st('rb13', 'abs', { A: { t: 'step', id: 'rb12' } }),
-			st('rb14', 'sub', { A: { t: 'step', id: 'rb13' }, B: { t: 'num', v: 1 } }),
-			st('rb15', 'clamp', { A: { t: 'step', id: 'rb14' }, LO: { t: 'num', v: 0 }, HI: { t: 'num', v: 1 } }, 'green'),
-			st('rb16', 'add', { A: { t: 'step', id: 'rb2' }, B: { t: 'num', v: 0.3333 } }),
-			st('rb17', 'floor', { A: { t: 'step', id: 'rb16' } }),
-			st('rb18', 'sub', { A: { t: 'step', id: 'rb16' }, B: { t: 'step', id: 'rb17' } }),
-			st('rb19', 'mul', { A: { t: 'step', id: 'rb18' }, B: { t: 'num', v: 6 } }),
-			st('rb20', 'sub', { A: { t: 'step', id: 'rb19' }, B: { t: 'num', v: 3 } }),
-			st('rb21', 'abs', { A: { t: 'step', id: 'rb20' } }),
-			st('rb22', 'sub', { A: { t: 'step', id: 'rb21' }, B: { t: 'num', v: 1 } }),
-			st('rb23', 'clamp', { A: { t: 'step', id: 'rb22' }, LO: { t: 'num', v: 0 }, HI: { t: 'num', v: 1 } }, 'blue'),
-			st('rb24', 'rgb', {
-				R: { t: 'step', id: 'rb7' },
-				G: { t: 'step', id: 'rb15' },
-				B: { t: 'step', id: 'rb23' }
-			}, 'paint')
+			st('t', 'mul', { A: P, B: { t: 'num', v: 6.28318 } }, 'turn'),
+			st('rs', 'sin', { A: { t: 'step', id: 't' } }),
+			st('rr', 'abs', { A: { t: 'step', id: 'rs' } }, 'red'),
+			st('gt', 'add', { A: { t: 'step', id: 't' }, B: { t: 'num', v: 2.0944 } }, 'green shift'),
+			st('gs', 'sin', { A: { t: 'step', id: 'gt' } }),
+			st('gg', 'abs', { A: { t: 'step', id: 'gs' } }, 'green'),
+			st('bt', 'add', { A: { t: 'step', id: 't' }, B: { t: 'num', v: 4.1888 } }, 'blue shift'),
+			st('bs', 'sin', { A: { t: 'step', id: 'bt' } }),
+			st('bb', 'abs', { A: { t: 'step', id: 'bs' } }, 'blue'),
+			st(
+				'paint',
+				'rgb',
+				{
+					R: { t: 'step', id: 'rr' },
+					G: { t: 'step', id: 'gg' },
+					B: { t: 'step', id: 'bb' }
+				},
+				'paint'
+			)
 		],
-		result: { t: 'step', id: 'rb24' }
+		result: { t: 'step', id: 'paint' }
 	},
 	{
 		id: 'clouds',
@@ -435,7 +428,7 @@ const IN_TO_FN = {
 
 // Bump when stock library bodies change or need to heal corrupt saves.
 // On mismatch, default funcs are replaced; user-made funcs are kept.
-const LIBRARY_VERSION = 2;
+const LIBRARY_VERSION = 4;
 
 /**
  * Upgrades a program in place: old baked-in ops become library calls, and
