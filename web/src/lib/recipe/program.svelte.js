@@ -16,9 +16,10 @@ function initialProgram() {
 	} catch {
 		// Bad save - fall through to the default.
 	}
-	// First visit: Rainbow slide — moving color with only 3 steps.
+	// First visit: the first real build in the course, simple enough to read
+	// but already more inviting than an empty editor.
 	return migrateProgram(
-		structuredClone(families.find((f) => f.name === 'Rainbow').tiers.find((t) => t.label === 'slide').program)
+		structuredClone(families.find((f) => f.name === 'Color').tiers.find((t) => t.label === 'gradient').program)
 	);
 }
 

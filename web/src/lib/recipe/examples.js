@@ -846,7 +846,8 @@ const warpGamma = [
 	fst('paint', 'rgb', { R: ref('gr'), G: ref('gg'), B: ref('gb') })
 ];
 
-export const families = [{
+const legacyFamilies = [
+{
 		name: 'Paint',
 		dim: 'basics',
 		section: 'learn',
@@ -968,7 +969,8 @@ export const families = [{
 		]
 	},
 {
-		name: 'Wrap',
+		// wrap numbers back into a range — frac stripes, mod tiles, then scroll.
+		name: 'Tile',
 		dim: 'basics',
 		section: 'learn',
 		tiers: [
@@ -984,6 +986,23 @@ export const families = [{
 							name: 'paint',
 							op: 'mix',
 							args: { A: col('#0f172a'), B: col('#f97316'), T: ref('b') }
+						}
+					],
+					color: ref('c')
+				}
+			},
+			{
+				// mod leftover after dividing — same wrap idea, bare op.
+				label: 'tiles',
+				program: {
+					steps: [
+						{ id: 'a', name: 'many', op: 'mul', args: { A: inp('x'), B: num(5) } },
+						{ id: 'b', name: 'wrap', op: 'mod', args: { A: ref('a'), B: num(1) } },
+						{
+							id: 'c',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0f172a'), B: col('#fb923c'), T: ref('b') }
 						}
 					],
 					color: ref('c')
@@ -1097,25 +1116,6 @@ export const families = [{
 				}
 			},
 			{
-				// Pulse between two vivid colors instead of dark ↔ one tint.
-				label: 'duo',
-				program: {
-					steps: [
-						{ id: 'a', name: 'turn', op: 'mul', args: { A: inp('time'), B: num(6.28318) } },
-						{ id: 'b', name: 'swing', op: 'sin', args: { A: ref('a') } },
-						{ id: 'c', name: 'half', op: 'mul', args: { A: ref('b'), B: num(0.5) } },
-						{ id: 'd', name: 'glow', op: 'add', args: { A: ref('c'), B: num(0.5) } },
-						{
-							id: 'e',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#ec4899'), B: col('#22d3ee'), T: ref('d') }
-						}
-					],
-					color: ref('e')
-				}
-			},
-			{
 				// Phase by x and y so the beat chases diagonally across the screen.
 				label: 'ripple',
 				program: {
@@ -1134,6 +1134,352 @@ export const families = [{
 						}
 					],
 					color: ref('p')
+				}
+			}
+		]
+	},
+{
+		// cos is sin's twin — starts at the top instead of the middle.
+		name: 'Twin',
+		dim: 'basics',
+		section: 'learn',
+		tiers: [
+			{
+				label: 'crest',
+				program: {
+					steps: [
+						{ id: 'a', name: 'bars', op: 'mul', args: { A: inp('x'), B: num(12.566) } },
+						{ id: 'b', name: 'crest', op: 'cos', args: { A: ref('a') } },
+						{ id: 'c', name: 'half', op: 'mul', args: { A: ref('b'), B: num(0.5) } },
+						{ id: 'd', name: 'lift', op: 'add', args: { A: ref('c'), B: num(0.5) } },
+						{
+							id: 'e',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#1e1b4b'), B: col('#67e8f9'), T: ref('d') }
+						}
+					],
+					color: ref('e')
+				}
+			},
+			{
+				label: 'orbit',
+				program: {
+					steps: [
+						{ id: 'a', name: 'turn', op: 'mul', args: { A: inp('time'), B: num(2) } },
+						{ id: 'b', name: 'cx', op: 'cos', args: { A: ref('a') } },
+						{ id: 'c', name: 'cy', op: 'sin', args: { A: ref('a') } },
+						{ id: 'd', name: 'ox', op: 'mul', args: { A: ref('b'), B: num(0.25) } },
+						{ id: 'e', name: 'oy', op: 'mul', args: { A: ref('c'), B: num(0.25) } },
+						{ id: 'f', name: 'px', op: 'add', args: { A: ref('d'), B: num(0.5) } },
+						{ id: 'g', name: 'py', op: 'add', args: { A: ref('e'), B: num(0.5) } },
+						{ id: 'h', name: 'dx', op: 'sub', args: { A: inp('x'), B: ref('f') } },
+						{ id: 'i', name: 'dy', op: 'sub', args: { A: inp('y'), B: ref('g') } },
+						{ id: 'j', name: 'xx', op: 'mul', args: { A: ref('h'), B: ref('h') } },
+						{ id: 'k', name: 'yy', op: 'mul', args: { A: ref('i'), B: ref('i') } },
+						{ id: 'l', name: 'apart', op: 'add', args: { A: ref('j'), B: ref('k') } },
+						{ id: 'm', name: 'glow', op: 'div', args: { A: num(0.01), B: ref('l') } },
+						{
+							id: 'n',
+							name: 'held',
+							op: 'clamp',
+							args: { A: ref('m'), LO: num(0), HI: num(1) }
+						},
+						{
+							id: 'o',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#020617'), B: col('#f472b6'), T: ref('n') }
+						}
+					],
+					color: ref('o')
+				}
+			}
+		]
+	},
+{
+		// sqrt turns x²+y² into real distance — a soft disc from the center.
+		name: 'Root',
+		dim: 'basics',
+		section: 'learn',
+		tiers: [
+			{
+				label: 'disc',
+				program: {
+					steps: [
+						{ id: 'a', name: 'ox', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
+						{ id: 'b', name: 'oy', op: 'sub', args: { A: inp('y'), B: num(0.5) } },
+						{ id: 'c', name: 'xx', op: 'mul', args: { A: ref('a'), B: ref('a') } },
+						{ id: 'd', name: 'yy', op: 'mul', args: { A: ref('b'), B: ref('b') } },
+						{ id: 'e', name: 'sum', op: 'add', args: { A: ref('c'), B: ref('d') } },
+						{ id: 'f', name: 'dist', op: 'sqrt', args: { A: ref('e') } },
+						{ id: 'g', name: 'soft', op: 'sub', args: { A: num(0.55), B: ref('f') } },
+						{ id: 'h', name: 'glow', op: 'max', args: { A: ref('g'), B: num(0) } },
+						{
+							id: 'i',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0b1020'), B: col('#5ef0ff'), T: ref('h') }
+						}
+					],
+					color: ref('i')
+				}
+			},
+			{
+				label: 'rings',
+				program: {
+					steps: [
+						{ id: 'a', name: 'ox', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
+						{ id: 'b', name: 'oy', op: 'sub', args: { A: inp('y'), B: num(0.5) } },
+						{ id: 'c', name: 'xx', op: 'mul', args: { A: ref('a'), B: ref('a') } },
+						{ id: 'd', name: 'yy', op: 'mul', args: { A: ref('b'), B: ref('b') } },
+						{ id: 'e', name: 'sum', op: 'add', args: { A: ref('c'), B: ref('d') } },
+						{ id: 'f', name: 'dist', op: 'sqrt', args: { A: ref('e') } },
+						{ id: 'g', name: 'rings', op: 'mul', args: { A: ref('f'), B: num(10) } },
+						{ id: 'h', name: 'pulse', op: 'wave', args: { N: ref('g') } },
+						{ id: 'i', name: 'fade', op: 'sub', args: { A: num(0.8), B: ref('f') } },
+						{ id: 'j', name: 'lit', op: 'mul', args: { A: ref('h'), B: ref('i') } },
+						{
+							id: 'k',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#05030f'), B: col('#c084fc'), T: ref('j') }
+						}
+					],
+					color: ref('k')
+				}
+			}
+		]
+	},
+{
+		// ^ sharpens a soft blob into a hot core.
+		name: 'Sharp',
+		dim: 'basics',
+		section: 'learn',
+		tiers: [
+			{
+				label: 'soft',
+				program: {
+					steps: [
+						{ id: 'a', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
+						{ id: 'b', name: 'keep', op: 'max', args: { A: ref('a'), B: num(0) } },
+						{
+							id: 'c',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0f172a'), B: col('#fbbf24'), T: ref('b') }
+						}
+					],
+					color: ref('c')
+				}
+			},
+			{
+				label: 'crisp',
+				program: {
+					steps: [
+						{ id: 'a', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
+						{ id: 'b', name: 'keep', op: 'max', args: { A: ref('a'), B: num(0) } },
+						{ id: 'c', name: 'hot', op: 'pow', args: { A: ref('b'), B: num(3) } },
+						{
+							id: 'd',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0f172a'), B: col('#fbbf24'), T: ref('c') }
+						}
+					],
+					color: ref('d')
+				}
+			}
+		]
+	},
+{
+		// clamp keeps a value between two ends — a hard band of light.
+		name: 'Hold',
+		dim: 'basics',
+		section: 'learn',
+		tiers: [
+			{
+				label: 'band',
+				program: {
+					steps: [
+						{
+							id: 'a',
+							name: 'held',
+							op: 'clamp',
+							args: { A: inp('x'), LO: num(0.3), HI: num(0.7) }
+						},
+						{ id: 'b', name: 'shift', op: 'sub', args: { A: ref('a'), B: num(0.3) } },
+						{ id: 'c', name: 'shade', op: 'div', args: { A: ref('b'), B: num(0.4) } },
+						{
+							id: 'd',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#111827'), B: col('#34d399'), T: ref('c') }
+						}
+					],
+					color: ref('d')
+				}
+			},
+			{
+				label: 'cap',
+				program: {
+					steps: [
+						{ id: 'a', name: 'glow', op: 'div', args: { A: num(0.08), B: inp('dist') } },
+						{
+							id: 'b',
+							name: 'held',
+							op: 'clamp',
+							args: { A: ref('a'), LO: num(0), HI: num(1) }
+						},
+						{
+							id: 'c',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#020617'), B: col('#f472b6'), T: ref('b') }
+						}
+					],
+					color: ref('c')
+				}
+			}
+		]
+	},
+{
+		// atan gives the angle around a point — a color sweep.
+		name: 'Turn',
+		dim: 'basics',
+		section: 'learn',
+		tiers: [
+			{
+				label: 'sweep',
+				program: {
+					steps: [
+						{ id: 'a', name: 'ox', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
+						{ id: 'b', name: 'oy', op: 'sub', args: { A: inp('y'), B: num(0.5) } },
+						{ id: 'c', name: 'ang', op: 'atan', args: { A: ref('b'), B: ref('a') } },
+						{ id: 'd', name: 'spin', op: 'div', args: { A: ref('c'), B: num(6.28318) } },
+						{ id: 'e', name: 'paint', op: 'rainbow', args: { N: ref('d') } },
+						{ id: 'f', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
+						{ id: 'g', name: 'lit', op: 'mul', args: { A: ref('e'), B: ref('f') } }
+					],
+					color: ref('g')
+				}
+			},
+			{
+				label: 'spin',
+				program: {
+					steps: [
+						{ id: 'a', name: 'ox', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
+						{ id: 'b', name: 'oy', op: 'sub', args: { A: inp('y'), B: num(0.5) } },
+						{ id: 'c', name: 'ang', op: 'atan', args: { A: ref('b'), B: ref('a') } },
+						{ id: 'd', name: 'unit', op: 'div', args: { A: ref('c'), B: num(6.28318) } },
+						{ id: 'e', name: 'slide', op: 'mul', args: { A: inp('time'), B: num(0.15) } },
+						{ id: 'f', name: 'turn', op: 'add', args: { A: ref('d'), B: ref('e') } },
+						{ id: 'g', name: 'rays', op: 'mul', args: { A: ref('f'), B: num(8) } },
+						{ id: 'h', name: 'shine', op: 'wave', args: { N: ref('g') } },
+						{ id: 'i', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
+						{ id: 'j', name: 'lit', op: 'mul', args: { A: ref('h'), B: ref('i') } },
+						{
+							id: 'k',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0b0420'), B: col('#fde047'), T: ref('j') }
+						}
+					],
+					color: ref('k')
+				}
+			}
+		]
+	},
+{
+		// exp grows crazy fast — feed it minus numbers for a soft fade.
+		name: 'Fade',
+		dim: 'basics',
+		section: 'learn',
+		tiers: [
+			{
+				label: 'halo',
+				program: {
+					steps: [
+						{ id: 'a', name: 'neg', op: 'mul', args: { A: inp('dist'), B: num(-6) } },
+						{ id: 'b', name: 'fall', op: 'exp', args: { A: ref('a') } },
+						{
+							id: 'c',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#020617'), B: col('#38bdf8'), T: ref('b') }
+						}
+					],
+					color: ref('c')
+				}
+			},
+			{
+				label: 'flash',
+				program: {
+					steps: [
+						{ id: 'a', name: 'beat', op: 'mod', args: { A: inp('time'), B: num(1.2) } },
+						{ id: 'b', name: 'neg', op: 'mul', args: { A: ref('a'), B: num(-4) } },
+						{ id: 'c', name: 'burst', op: 'exp', args: { A: ref('b') } },
+						{ id: 'd', name: 'place', op: 'sub', args: { A: num(1), B: inp('dist') } },
+						{ id: 'e', name: 'keep', op: 'max', args: { A: ref('d'), B: num(0) } },
+						{ id: 'f', name: 'lit', op: 'mul', args: { A: ref('c'), B: ref('e') } },
+						{
+							id: 'g',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0a0612'), B: col('#fb7185'), T: ref('f') }
+						}
+					],
+					color: ref('g')
+				}
+			}
+		]
+	},
+{
+		// log squashes big numbers down — soft distance shading.
+		name: 'Squash',
+		dim: 'basics',
+		section: 'learn',
+		tiers: [
+			{
+				label: 'soft',
+				program: {
+					steps: [
+						{ id: 'a', name: 'wide', op: 'mul', args: { A: inp('dist'), B: num(8) } },
+						{ id: 'b', name: 'lift', op: 'add', args: { A: ref('a'), B: num(1) } },
+						{ id: 'c', name: 'squash', op: 'log', args: { A: ref('b') } },
+						{ id: 'd', name: 'shade', op: 'div', args: { A: ref('c'), B: num(2.2) } },
+						{
+							id: 'e',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#fef3c7'), B: col('#9a3412'), T: ref('d') }
+						}
+					],
+					color: ref('e')
+				}
+			},
+			{
+				label: 'glow',
+				program: {
+					steps: [
+						{ id: 'a', name: 'hot', op: 'div', args: { A: num(0.15), B: inp('dist') } },
+						{ id: 'b', name: 'lift', op: 'add', args: { A: ref('a'), B: num(1) } },
+						{ id: 'c', name: 'squash', op: 'log', args: { A: ref('b') } },
+						{ id: 'd', name: 'shade', op: 'div', args: { A: ref('c'), B: num(3) } },
+						{
+							id: 'e',
+							name: 'held',
+							op: 'clamp',
+							args: { A: ref('d'), LO: num(0), HI: num(1) }
+						},
+						{
+							id: 'f',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#020617'), B: col('#fbbf24'), T: ref('e') }
+						}
+					],
+					color: ref('f')
 				}
 			}
 		]
@@ -1174,6 +1520,47 @@ export const families = [{
 						{ id: 'g', name: 'paint', op: 'rainbow', args: { N: ref('f') } }
 					],
 					color: ref('g')
+				}
+			}
+		]
+	},
+{
+		// build a color from red, green, and blue numbers.
+		name: 'Channels',
+		dim: 'color',
+		section: 'learn',
+		tiers: [
+			{
+				label: 'ramp',
+				program: {
+					steps: [
+						{
+							id: 'a',
+							name: 'paint',
+							op: 'rgb',
+							args: { R: inp('x'), G: inp('y'), B: num(0.4) }
+						}
+					],
+					color: ref('a')
+				}
+			},
+			{
+				label: 'glow',
+				program: {
+					steps: [
+						{ id: 'a', name: 'pulse', op: 'wave', args: { N: inp('time') } },
+						{ id: 'b', name: 'red', op: 'sub', args: { A: num(1), B: inp('dist') } },
+						{ id: 'c', name: 'keep', op: 'max', args: { A: ref('b'), B: num(0) } },
+						{ id: 'd', name: 'hot', op: 'mul', args: { A: ref('c'), B: ref('a') } },
+						{ id: 'e', name: 'green', op: 'mul', args: { A: ref('d'), B: num(0.35) } },
+						{
+							id: 'f',
+							name: 'paint',
+							op: 'rgb',
+							args: { R: ref('d'), G: ref('e'), B: num(0.15) }
+						}
+					],
+					color: ref('f')
 				}
 			}
 		]
@@ -1306,416 +1693,6 @@ export const families = [{
 		]
 	},
 {
-		name: 'Cloud',
-		dim: 'noise',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'puff',
-				program: {
-					steps: [
-						{ id: 'a', name: 'puffs', op: 'noise', args: { N: num(4) } },
-						{
-							id: 'b',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#3b82f6'), B: col('#ffffff'), T: ref('a') }
-						}
-					],
-					color: ref('b')
-				}
-			}
-		]
-	},
-	{
-		// sqrt turns x²+y² into real distance — a soft disc from the center.
-		name: 'Root',
-		dim: 'basics',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'disc',
-				program: {
-					steps: [
-						{ id: 'a', name: 'ox', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
-						{ id: 'b', name: 'oy', op: 'sub', args: { A: inp('y'), B: num(0.5) } },
-						{ id: 'c', name: 'xx', op: 'mul', args: { A: ref('a'), B: ref('a') } },
-						{ id: 'd', name: 'yy', op: 'mul', args: { A: ref('b'), B: ref('b') } },
-						{ id: 'e', name: 'sum', op: 'add', args: { A: ref('c'), B: ref('d') } },
-						{ id: 'f', name: 'dist', op: 'sqrt', args: { A: ref('e') } },
-						{ id: 'g', name: 'soft', op: 'sub', args: { A: num(0.55), B: ref('f') } },
-						{ id: 'h', name: 'glow', op: 'max', args: { A: ref('g'), B: num(0) } },
-						{
-							id: 'i',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#0b1020'), B: col('#5ef0ff'), T: ref('h') }
-						}
-					],
-					color: ref('i')
-				}
-			},
-			{
-				label: 'rings',
-				program: {
-					steps: [
-						{ id: 'a', name: 'ox', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
-						{ id: 'b', name: 'oy', op: 'sub', args: { A: inp('y'), B: num(0.5) } },
-						{ id: 'c', name: 'xx', op: 'mul', args: { A: ref('a'), B: ref('a') } },
-						{ id: 'd', name: 'yy', op: 'mul', args: { A: ref('b'), B: ref('b') } },
-						{ id: 'e', name: 'sum', op: 'add', args: { A: ref('c'), B: ref('d') } },
-						{ id: 'f', name: 'dist', op: 'sqrt', args: { A: ref('e') } },
-						{ id: 'g', name: 'rings', op: 'mul', args: { A: ref('f'), B: num(10) } },
-						{ id: 'h', name: 'pulse', op: 'wave', args: { N: ref('g') } },
-						{ id: 'i', name: 'fade', op: 'sub', args: { A: num(0.8), B: ref('f') } },
-						{ id: 'j', name: 'lit', op: 'mul', args: { A: ref('h'), B: ref('i') } },
-						{
-							id: 'k',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#05030f'), B: col('#c084fc'), T: ref('j') }
-						}
-					],
-					color: ref('k')
-				}
-			}
-		]
-	},
-	{
-		// ^ sharpens a soft blob into a hot core.
-		name: 'Sharp',
-		dim: 'basics',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'soft',
-				program: {
-					steps: [
-						{ id: 'a', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'b', name: 'keep', op: 'max', args: { A: ref('a'), B: num(0) } },
-						{
-							id: 'c',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#0f172a'), B: col('#fbbf24'), T: ref('b') }
-						}
-					],
-					color: ref('c')
-				}
-			},
-			{
-				label: 'crisp',
-				program: {
-					steps: [
-						{ id: 'a', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'b', name: 'keep', op: 'max', args: { A: ref('a'), B: num(0) } },
-						{ id: 'c', name: 'hot', op: 'pow', args: { A: ref('b'), B: num(3) } },
-						{
-							id: 'd',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#0f172a'), B: col('#fbbf24'), T: ref('c') }
-						}
-					],
-					color: ref('d')
-				}
-			}
-		]
-	},
-	{
-		// clamp keeps a value between two ends — a hard band of light.
-		name: 'Hold',
-		dim: 'basics',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'band',
-				program: {
-					steps: [
-						{
-							id: 'a',
-							name: 'held',
-							op: 'clamp',
-							args: { A: inp('x'), LO: num(0.3), HI: num(0.7) }
-						},
-						{ id: 'b', name: 'shift', op: 'sub', args: { A: ref('a'), B: num(0.3) } },
-						{ id: 'c', name: 'shade', op: 'div', args: { A: ref('b'), B: num(0.4) } },
-						{
-							id: 'd',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#111827'), B: col('#34d399'), T: ref('c') }
-						}
-					],
-					color: ref('d')
-				}
-			},
-			{
-				label: 'cap',
-				program: {
-					steps: [
-						{ id: 'a', name: 'glow', op: 'div', args: { A: num(0.08), B: inp('dist') } },
-						{
-							id: 'b',
-							name: 'held',
-							op: 'clamp',
-							args: { A: ref('a'), LO: num(0), HI: num(1) }
-						},
-						{
-							id: 'c',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#020617'), B: col('#f472b6'), T: ref('b') }
-						}
-					],
-					color: ref('c')
-				}
-			}
-		]
-	},
-	{
-		// mod is the leftover after dividing — tiles that snap back.
-		name: 'Snap',
-		dim: 'basics',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'tiles',
-				program: {
-					steps: [
-						{ id: 'a', name: 'many', op: 'mul', args: { A: inp('x'), B: num(5) } },
-						{ id: 'b', name: 'wrap', op: 'mod', args: { A: ref('a'), B: num(1) } },
-						{
-							id: 'c',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#0f172a'), B: col('#fb923c'), T: ref('b') }
-						}
-					],
-					color: ref('c')
-				}
-			},
-			{
-				label: 'tick',
-				program: {
-					steps: [
-						{ id: 'a', name: 'beat', op: 'mod', args: { A: inp('time'), B: num(1) } },
-						{ id: 'b', name: 'place', op: 'add', args: { A: inp('x'), B: ref('a') } },
-						{ id: 'c', name: 'many', op: 'mul', args: { A: ref('b'), B: num(4) } },
-						{ id: 'd', name: 'wrap', op: 'mod', args: { A: ref('c'), B: num(1) } },
-						{
-							id: 'e',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#172554'), B: col('#fde68a'), T: ref('d') }
-						}
-					],
-					color: ref('e')
-				}
-			}
-		]
-	},
-	{
-		// cos is sin's twin — starts at the top instead of the middle.
-		name: 'Twin',
-		dim: 'basics',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'crest',
-				program: {
-					steps: [
-						{ id: 'a', name: 'bars', op: 'mul', args: { A: inp('x'), B: num(12.566) } },
-						{ id: 'b', name: 'crest', op: 'cos', args: { A: ref('a') } },
-						{ id: 'c', name: 'half', op: 'mul', args: { A: ref('b'), B: num(0.5) } },
-						{ id: 'd', name: 'lift', op: 'add', args: { A: ref('c'), B: num(0.5) } },
-						{
-							id: 'e',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#1e1b4b'), B: col('#67e8f9'), T: ref('d') }
-						}
-					],
-					color: ref('e')
-				}
-			},
-			{
-				label: 'orbit',
-				program: {
-					steps: [
-						{ id: 'a', name: 'turn', op: 'mul', args: { A: inp('time'), B: num(2) } },
-						{ id: 'b', name: 'cx', op: 'cos', args: { A: ref('a') } },
-						{ id: 'c', name: 'cy', op: 'sin', args: { A: ref('a') } },
-						{ id: 'd', name: 'ox', op: 'mul', args: { A: ref('b'), B: num(0.25) } },
-						{ id: 'e', name: 'oy', op: 'mul', args: { A: ref('c'), B: num(0.25) } },
-						{ id: 'f', name: 'px', op: 'add', args: { A: ref('d'), B: num(0.5) } },
-						{ id: 'g', name: 'py', op: 'add', args: { A: ref('e'), B: num(0.5) } },
-						{ id: 'h', name: 'dx', op: 'sub', args: { A: inp('x'), B: ref('f') } },
-						{ id: 'i', name: 'dy', op: 'sub', args: { A: inp('y'), B: ref('g') } },
-						{ id: 'j', name: 'xx', op: 'mul', args: { A: ref('h'), B: ref('h') } },
-						{ id: 'k', name: 'yy', op: 'mul', args: { A: ref('i'), B: ref('i') } },
-						{ id: 'l', name: 'apart', op: 'add', args: { A: ref('j'), B: ref('k') } },
-						{ id: 'm', name: 'glow', op: 'div', args: { A: num(0.01), B: ref('l') } },
-						{
-							id: 'n',
-							name: 'held',
-							op: 'clamp',
-							args: { A: ref('m'), LO: num(0), HI: num(1) }
-						},
-						{
-							id: 'o',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#020617'), B: col('#f472b6'), T: ref('n') }
-						}
-					],
-					color: ref('o')
-				}
-			}
-		]
-	},
-	{
-		// atan gives the angle around a point — a color sweep.
-		name: 'Turn',
-		dim: 'basics',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'sweep',
-				program: {
-					steps: [
-						{ id: 'a', name: 'ox', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
-						{ id: 'b', name: 'oy', op: 'sub', args: { A: inp('y'), B: num(0.5) } },
-						{ id: 'c', name: 'ang', op: 'atan', args: { A: ref('b'), B: ref('a') } },
-						{ id: 'd', name: 'spin', op: 'div', args: { A: ref('c'), B: num(6.28318) } },
-						{ id: 'e', name: 'paint', op: 'rainbow', args: { N: ref('d') } },
-						{ id: 'f', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'g', name: 'lit', op: 'mul', args: { A: ref('e'), B: ref('f') } }
-					],
-					color: ref('g')
-				}
-			},
-			{
-				label: 'spin',
-				program: {
-					steps: [
-						{ id: 'a', name: 'ox', op: 'sub', args: { A: inp('x'), B: num(0.5) } },
-						{ id: 'b', name: 'oy', op: 'sub', args: { A: inp('y'), B: num(0.5) } },
-						{ id: 'c', name: 'ang', op: 'atan', args: { A: ref('b'), B: ref('a') } },
-						{ id: 'd', name: 'unit', op: 'div', args: { A: ref('c'), B: num(6.28318) } },
-						{ id: 'e', name: 'slide', op: 'mul', args: { A: inp('time'), B: num(0.15) } },
-						{ id: 'f', name: 'turn', op: 'add', args: { A: ref('d'), B: ref('e') } },
-						{ id: 'g', name: 'rays', op: 'mul', args: { A: ref('f'), B: num(8) } },
-						{ id: 'h', name: 'shine', op: 'wave', args: { N: ref('g') } },
-						{ id: 'i', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'j', name: 'lit', op: 'mul', args: { A: ref('h'), B: ref('i') } },
-						{
-							id: 'k',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#0b0420'), B: col('#fde047'), T: ref('j') }
-						}
-					],
-					color: ref('k')
-				}
-			}
-		]
-	},
-	{
-		// exp grows crazy fast — feed it minus numbers for a soft fade.
-		name: 'Fade',
-		dim: 'basics',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'halo',
-				program: {
-					steps: [
-						{ id: 'a', name: 'neg', op: 'mul', args: { A: inp('dist'), B: num(-6) } },
-						{ id: 'b', name: 'fall', op: 'exp', args: { A: ref('a') } },
-						{
-							id: 'c',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#020617'), B: col('#38bdf8'), T: ref('b') }
-						}
-					],
-					color: ref('c')
-				}
-			},
-			{
-				label: 'flash',
-				program: {
-					steps: [
-						{ id: 'a', name: 'beat', op: 'mod', args: { A: inp('time'), B: num(1.2) } },
-						{ id: 'b', name: 'neg', op: 'mul', args: { A: ref('a'), B: num(-4) } },
-						{ id: 'c', name: 'burst', op: 'exp', args: { A: ref('b') } },
-						{ id: 'd', name: 'place', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'e', name: 'keep', op: 'max', args: { A: ref('d'), B: num(0) } },
-						{ id: 'f', name: 'lit', op: 'mul', args: { A: ref('c'), B: ref('e') } },
-						{
-							id: 'g',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#0a0612'), B: col('#fb7185'), T: ref('f') }
-						}
-					],
-					color: ref('g')
-				}
-			}
-		]
-	},
-	{
-		// log squashes big numbers down — soft distance shading.
-		name: 'Squash',
-		dim: 'basics',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'soft',
-				program: {
-					steps: [
-						{ id: 'a', name: 'wide', op: 'mul', args: { A: inp('dist'), B: num(8) } },
-						{ id: 'b', name: 'lift', op: 'add', args: { A: ref('a'), B: num(1) } },
-						{ id: 'c', name: 'squash', op: 'log', args: { A: ref('b') } },
-						{ id: 'd', name: 'shade', op: 'div', args: { A: ref('c'), B: num(2.2) } },
-						{
-							id: 'e',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#fef3c7'), B: col('#9a3412'), T: ref('d') }
-						}
-					],
-					color: ref('e')
-				}
-			},
-			{
-				label: 'glow',
-				program: {
-					steps: [
-						{ id: 'a', name: 'hot', op: 'div', args: { A: num(0.15), B: inp('dist') } },
-						{ id: 'b', name: 'lift', op: 'add', args: { A: ref('a'), B: num(1) } },
-						{ id: 'c', name: 'squash', op: 'log', args: { A: ref('b') } },
-						{ id: 'd', name: 'shade', op: 'div', args: { A: ref('c'), B: num(3) } },
-						{
-							id: 'e',
-							name: 'held',
-							op: 'clamp',
-							args: { A: ref('d'), LO: num(0), HI: num(1) }
-						},
-						{
-							id: 'f',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#020617'), B: col('#fbbf24'), T: ref('e') }
-						}
-					],
-					color: ref('f')
-				}
-			}
-		]
-	},
-	{
 		// noise at a spot — the raw grain clouds are made of.
 		name: 'Grain',
 		dim: 'noise',
@@ -1758,7 +1735,7 @@ export const families = [{
 			}
 		]
 	},
-	{
+{
 		// simplex noise swings above and below zero — streakier clouds.
 		name: 'Streak',
 		dim: 'noise',
@@ -1806,7 +1783,7 @@ export const families = [{
 			}
 		]
 	},
-	{
+{
 		// noise3 adds a third axis — feed it time to churn.
 		name: 'Churn',
 		dim: 'noise',
@@ -1861,48 +1838,7 @@ export const families = [{
 			}
 		]
 	},
-	{
-		// build a color from red, green, and blue numbers.
-		name: 'Channels',
-		dim: 'color',
-		section: 'learn',
-		tiers: [
-			{
-				label: 'ramp',
-				program: {
-					steps: [
-						{
-							id: 'a',
-							name: 'paint',
-							op: 'rgb',
-							args: { R: inp('x'), G: inp('y'), B: num(0.4) }
-						}
-					],
-					color: ref('a')
-				}
-			},
-			{
-				label: 'glow',
-				program: {
-					steps: [
-						{ id: 'a', name: 'pulse', op: 'wave', args: { N: inp('time') } },
-						{ id: 'b', name: 'red', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'c', name: 'keep', op: 'max', args: { A: ref('b'), B: num(0) } },
-						{ id: 'd', name: 'hot', op: 'mul', args: { A: ref('c'), B: ref('a') } },
-						{ id: 'e', name: 'green', op: 'mul', args: { A: ref('hot'), B: num(0.35) } },
-						{
-							id: 'f',
-							name: 'paint',
-							op: 'rgb',
-							args: { R: ref('hot'), G: ref('e'), B: num(0.15) }
-						}
-					],
-					color: ref('f')
-				}
-			}
-		]
-	},
-	{
+{
 		// just passes a value through — handy for naming a number.
 		name: 'Pass',
 		dim: 'basics',
@@ -2094,7 +2030,7 @@ export const families = [{
 			}
 		]
 	},
-	{
+{
 		name: 'Heart',
 		dim: 'beat',
 		section: 'gallery',
@@ -2202,7 +2138,7 @@ export const families = [{
 			}
 		]
 	},
-	{
+{
 		name: 'Ripples',
 		section: 'gallery',
 		dim: 'waves',
@@ -2277,7 +2213,7 @@ export const families = [{
 			}
 		]
 	},
-	{
+{
 		name: 'Pinwheel',
 		section: 'gallery',
 		dim: 'spin',
@@ -2326,87 +2262,6 @@ export const families = [{
 			}
 		]
 	},
-	{
-		name: 'Sunburst',
-		section: 'gallery',
-		dim: '2D',
-		tiers: [
-			{
-				label: 'small',
-				program: {
-					steps: [
-						{ id: 'a', name: 'rays', op: 'mul', args: { A: inp('angle'), B: num(8) } },
-						{ id: 'b', name: 'shine', op: 'wave', args: { N: ref('a') } },
-						{ id: 'c', name: 'hot', op: 'pow', args: { A: ref('b'), B: num(2.4) } },
-						{ id: 'd', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'e', name: 'glow', op: 'mul', args: { A: ref('c'), B: ref('d') } },
-						{
-							id: 'f',
-							name: 'warm',
-							op: 'mix',
-							args: { A: col('#ff7a18'), B: col('#fff3a0'), T: ref('e') }
-						},
-						{
-							id: 'g',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#1a0610'), B: ref('f'), T: ref('d') }
-						}
-					],
-					color: ref('g')
-				}
-			},
-			{
-				label: 'medium',
-				program: {
-					steps: [
-						{ id: 'a', name: 'spin', op: 'mul', args: { A: inp('time'), B: num(0.05) } },
-						{ id: 'b', name: 'turn', op: 'add', args: { A: inp('angle'), B: ref('a') } },
-						{ id: 'c', name: 'rays', op: 'mul', args: { A: ref('b'), B: num(12) } },
-						{ id: 'd', name: 'shine', op: 'wave', args: { N: ref('c') } },
-						{ id: 'e', name: 'hot', op: 'pow', args: { A: ref('d'), B: num(2.2) } },
-						{ id: 'f', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'g', name: 'soft', op: 'pow', args: { A: ref('f'), B: num(1.4) } },
-						{ id: 'h', name: 'glow', op: 'mul', args: { A: ref('e'), B: ref('g') } },
-						{
-							id: 'i',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#14031c'), B: col('#ffe066'), T: ref('h') }
-						}
-					],
-					color: ref('i')
-				}
-			},
-			{
-				label: 'big',
-				program: {
-					steps: [
-						{ id: 'a', name: 'spin', op: 'mul', args: { A: inp('time'), B: num(0.08) } },
-						{ id: 'b', name: 'turn', op: 'add', args: { A: inp('angle'), B: ref('a') } },
-						{ id: 'c', name: 'rays', op: 'mul', args: { A: ref('b'), B: num(10) } },
-						{ id: 'd', name: 'shine', op: 'wave', args: { N: ref('c') } },
-						{ id: 'e', name: 'rings', op: 'mul', args: { A: inp('dist'), B: num(5) } },
-						{ id: 'f', name: 'pulse', op: 'sub', args: { A: ref('e'), B: inp('time') } },
-						{ id: 'g', name: 'beat', op: 'wave', args: { N: ref('f') } },
-						{ id: 'h', name: 'sparkle', op: 'mul', args: { A: ref('d'), B: ref('g') } },
-						{ id: 'i', name: 'hot', op: 'pow', args: { A: ref('h'), B: num(1.6) } },
-						{ id: 'j', name: 'swirl', op: 'add', args: { A: ref('b'), B: inp('dist') } },
-						{ id: 'k', name: 'colors', op: 'rainbow', args: { N: ref('j') } },
-						{ id: 'l', name: 'fade', op: 'sub', args: { A: num(1), B: inp('dist') } },
-						{ id: 'm', name: 'lit', op: 'mul', args: { A: ref('i'), B: ref('l') } },
-						{
-							id: 'n',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#080014'), B: ref('k'), T: ref('m') }
-						}
-					],
-					color: ref('n')
-				}
-			}
-		]
-	},
 {
 		name: 'Neon',
 		dim: 'glow',
@@ -2441,63 +2296,6 @@ export const families = [{
 						...neonLayer('D', 'Ccx', 'Ccy', 3, 'Cacc')
 					],
 					color: ref('Dacc')
-				}
-			}
-		]
-	},
-{
-		name: 'Plasma',
-		section: 'gallery',
-		dim: 'waves',
-		tiers: [
-			{
-				label: 'small',
-				program: {
-					steps: [
-						{ id: 'a', name: 'stripes', op: 'mul', args: { A: inp('x'), B: num(3) } },
-						{ id: 'b', name: 'moving', op: 'add', args: { A: ref('a'), B: inp('time') } },
-						{ id: 'c', name: 'soft', op: 'wave', args: { N: ref('b') } },
-						{ id: 'd', name: 'paint', op: 'rainbow', args: { N: ref('c') } }
-					],
-					color: ref('d')
-				}
-			},
-			{
-				label: 'medium',
-				program: {
-					steps: [
-						{ id: 'a', name: 'stripes', op: 'mul', args: { A: inp('x'), B: num(3) } },
-						{ id: 'b', name: 'moving 1', op: 'add', args: { A: ref('a'), B: inp('time') } },
-						{ id: 'c', name: 'wave 1', op: 'wave', args: { N: ref('b') } },
-						{ id: 'd', name: 'bands', op: 'mul', args: { A: inp('y'), B: num(2) } },
-						{ id: 'e', name: 'slow time', op: 'mul', args: { A: inp('time'), B: num(0.7) } },
-						{ id: 'f', name: 'moving 2', op: 'add', args: { A: ref('d'), B: ref('e') } },
-						{ id: 'g', name: 'wave 2', op: 'wave', args: { N: ref('f') } },
-						{ id: 'h', name: 'both', op: 'mix', args: { A: ref('c'), B: ref('g'), T: num(0.5) } },
-						{ id: 'i', name: 'paint', op: 'rainbow', args: { N: ref('h') } }
-					],
-					color: ref('i')
-				}
-			},
-			{
-				label: 'big',
-				program: {
-					steps: [
-						{ id: 'a', name: 'stripes', op: 'mul', args: { A: inp('x'), B: num(3) } },
-						{ id: 'b', name: 'moving 1', op: 'add', args: { A: ref('a'), B: inp('time') } },
-						{ id: 'c', name: 'wave 1', op: 'wave', args: { N: ref('b') } },
-						{ id: 'd', name: 'bands', op: 'mul', args: { A: inp('y'), B: num(2) } },
-						{ id: 'e', name: 'slow time', op: 'mul', args: { A: inp('time'), B: num(0.7) } },
-						{ id: 'f', name: 'moving 2', op: 'add', args: { A: ref('d'), B: ref('e') } },
-						{ id: 'g', name: 'wave 2', op: 'wave', args: { N: ref('f') } },
-						{ id: 'h', name: 'both', op: 'mix', args: { A: ref('c'), B: ref('g'), T: num(0.5) } },
-						{ id: 'i', name: 'rings', op: 'mul', args: { A: inp('dist'), B: num(3) } },
-						{ id: 'j', name: 'ring move', op: 'sub', args: { A: ref('i'), B: inp('time') } },
-						{ id: 'k', name: 'wave 3', op: 'wave', args: { N: ref('j') } },
-						{ id: 'l', name: 'all', op: 'mix', args: { A: ref('h'), B: ref('k'), T: num(0.4) } },
-						{ id: 'm', name: 'paint', op: 'rainbow', args: { N: ref('l') } }
-					],
-					color: ref('m')
 				}
 			}
 		]
@@ -2603,53 +2401,69 @@ export const families = [{
 		]
 	},
 {
-		name: 'Tunnel',
-		dim: '3D',
+		name: 'Metaballs',
+		dim: '2D',
 		section: 'gallery',
 		tiers: [
 			{
 				label: 'small',
 				program: {
 					steps: [
-						{ id: 'a', name: 'depth', op: 'div', args: { A: num(1), B: inp('dist') } },
-						{ id: 'b', name: 'far', op: 'mul', args: { A: ref('a'), B: num(0.4) } },
-						{ id: 'c', name: 'rings', op: 'wave', args: { N: ref('b') } },
-						{ id: 'd', name: 'paint', op: 'mix', args: { A: col('#0b132b'), B: col('#9ad8ff'), T: ref('c') } }
+						{ id: 'a', name: 'apart', op: 'mul', args: { A: inp('dist'), B: inp('dist') } },
+						{ id: 'b', name: 'glow', op: 'div', args: { A: num(0.05), B: ref('a') } },
+						{ id: 'c', name: 'paint', op: 'mix', args: { A: col('#0b1020'), B: col('#6ee7ff'), T: ref('b') } }
 					],
-					color: ref('d')
+					color: ref('c')
 				}
 			},
 			{
 				label: 'medium',
 				program: {
 					steps: [
-						{ id: 'a', name: 'depth', op: 'div', args: { A: num(1), B: inp('dist') } },
-						{ id: 'b', name: 'far', op: 'mul', args: { A: ref('a'), B: num(0.4) } },
-						{ id: 'c', name: 'fly', op: 'sub', args: { A: ref('b'), B: inp('time') } },
-						{ id: 'd', name: 'rings', op: 'wave', args: { N: ref('c') } },
-						{ id: 'e', name: 'lit', op: 'mul', args: { A: ref('d'), B: inp('dist') } },
-						{ id: 'f', name: 'paint', op: 'mix', args: { A: col('#03050e'), B: col('#8ce0ff'), T: ref('e') } }
+						{ id: 'a', name: 'speed x', op: 'mul', args: { A: inp('time'), B: num(0.31) } },
+						{ id: 'b', name: 'ball x', op: 'wave', args: { N: ref('a') } },
+						{ id: 'c', name: 'speed y', op: 'mul', args: { A: inp('time'), B: num(0.23) } },
+						{ id: 'd', name: 'ball y', op: 'wave', args: { N: ref('c') } },
+						{ id: 'e', name: 'away x', op: 'sub', args: { A: inp('x'), B: ref('b') } },
+						{ id: 'f', name: 'away y', op: 'sub', args: { A: inp('y'), B: ref('d') } },
+						{ id: 'g', name: 'xx', op: 'mul', args: { A: ref('e'), B: ref('e') } },
+						{ id: 'h', name: 'yy', op: 'mul', args: { A: ref('f'), B: ref('f') } },
+						{ id: 'i', name: 'apart', op: 'add', args: { A: ref('g'), B: ref('h') } },
+						{ id: 'j', name: 'glow', op: 'div', args: { A: num(0.02), B: ref('i') } },
+						{ id: 'k', name: 'paint', op: 'mix', args: { A: col('#0b1020'), B: col('#6ee7ff'), T: ref('j') } }
 					],
-					color: ref('f')
+					color: ref('k')
 				}
 			},
 			{
 				label: 'big',
 				program: {
 					steps: [
-						{ id: 'a', name: 'depth', op: 'div', args: { A: num(1), B: inp('dist') } },
-						{ id: 'b', name: 'far', op: 'mul', args: { A: ref('a'), B: num(0.4) } },
-						{ id: 'c', name: 'fly', op: 'sub', args: { A: ref('b'), B: inp('time') } },
-						{ id: 'd', name: 'rings', op: 'wave', args: { N: ref('c') } },
-						{ id: 'e', name: 'six', op: 'mul', args: { A: inp('angle'), B: num(6) } },
-						{ id: 'f', name: 'spokes', op: 'wave', args: { N: ref('e') } },
-						{ id: 'g', name: 'web', op: 'mix', args: { A: ref('d'), B: ref('f'), T: num(0.5) } },
-						{ id: 'h', name: 'lit', op: 'mul', args: { A: ref('g'), B: inp('dist') } },
-						{ id: 'i', name: 'hue', op: 'mul', args: { A: ref('c'), B: num(0.15) } },
-						{ id: 'j', name: 'colors', op: 'rainbow', args: { N: ref('i') } },
-						{ id: 'k', name: 'paint', op: 'mix', args: { A: col('#02030a'), B: ref('j'), T: ref('h') } }
+						{ id: 'a', name: 'speed x', op: 'mul', args: { A: inp('time'), B: num(0.31) } },
+						{ id: 'b', name: 'ball x', op: 'wave', args: { N: ref('a') } },
+						{ id: 'c', name: 'speed y', op: 'mul', args: { A: inp('time'), B: num(0.23) } },
+						{ id: 'd', name: 'ball y', op: 'wave', args: { N: ref('c') } },
+						{ id: 'e', name: 'away x', op: 'sub', args: { A: inp('x'), B: ref('b') } },
+						{ id: 'f', name: 'away y', op: 'sub', args: { A: inp('y'), B: ref('d') } },
+						{ id: 'g', name: 'xx', op: 'mul', args: { A: ref('e'), B: ref('e') } },
+						{ id: 'h', name: 'yy', op: 'mul', args: { A: ref('f'), B: ref('f') } },
+						{ id: 'i', name: 'apart', op: 'add', args: { A: ref('g'), B: ref('h') } },
+						{ id: 'j', name: 'glow', op: 'div', args: { A: num(0.02), B: ref('i') } },
+						{ id: 'k', name: 'ball 2 x', op: 'sub', args: { A: num(1), B: ref('b') } },
+						{ id: 'l', name: 'ball 2 y', op: 'sub', args: { A: num(1), B: ref('d') } },
+						{ id: 'm', name: 'away 2 x', op: 'sub', args: { A: inp('x'), B: ref('k') } },
+						{ id: 'n', name: 'away 2 y', op: 'sub', args: { A: inp('y'), B: ref('l') } },
+						{ id: 'o', name: 'xx 2', op: 'mul', args: { A: ref('m'), B: ref('m') } },
+						{ id: 'p', name: 'yy 2', op: 'mul', args: { A: ref('n'), B: ref('n') } },
+						{ id: 'q', name: 'apart 2', op: 'add', args: { A: ref('o'), B: ref('p') } },
+						{ id: 'r', name: 'glow 2', op: 'div', args: { A: num(0.02), B: ref('q') } },
+						{ id: 's', name: 'both', op: 'add', args: { A: ref('j'), B: ref('r') } },
+						{ id: 't', name: 'base', op: 'mix', args: { A: col('#05060f'), B: col('#22d3ee'), T: ref('s') } },
+						{ id: 'u', name: 'hot', op: 'sub', args: { A: ref('s'), B: num(1.4) } },
+						{ id: 'v', name: 'hot!', op: 'mul', args: { A: ref('u'), B: num(6) } },
+						{ id: 'w', name: 'paint', op: 'mix', args: { A: ref('t'), B: col('#ffffff'), T: ref('v') } }
 					],
-					color: ref('k')
+					color: ref('w')
 				}
 			}
 		]
@@ -2849,149 +2663,6 @@ export const families = [{
 		]
 	},
 {
-		name: 'Metaballs',
-		dim: '2D',
-		section: 'gallery',
-		tiers: [
-			{
-				label: 'small',
-				program: {
-					steps: [
-						{ id: 'a', name: 'apart', op: 'mul', args: { A: inp('dist'), B: inp('dist') } },
-						{ id: 'b', name: 'glow', op: 'div', args: { A: num(0.05), B: ref('a') } },
-						{ id: 'c', name: 'paint', op: 'mix', args: { A: col('#0b1020'), B: col('#6ee7ff'), T: ref('b') } }
-					],
-					color: ref('c')
-				}
-			},
-			{
-				label: 'medium',
-				program: {
-					steps: [
-						{ id: 'a', name: 'speed x', op: 'mul', args: { A: inp('time'), B: num(0.31) } },
-						{ id: 'b', name: 'ball x', op: 'wave', args: { N: ref('a') } },
-						{ id: 'c', name: 'speed y', op: 'mul', args: { A: inp('time'), B: num(0.23) } },
-						{ id: 'd', name: 'ball y', op: 'wave', args: { N: ref('c') } },
-						{ id: 'e', name: 'away x', op: 'sub', args: { A: inp('x'), B: ref('b') } },
-						{ id: 'f', name: 'away y', op: 'sub', args: { A: inp('y'), B: ref('d') } },
-						{ id: 'g', name: 'xx', op: 'mul', args: { A: ref('e'), B: ref('e') } },
-						{ id: 'h', name: 'yy', op: 'mul', args: { A: ref('f'), B: ref('f') } },
-						{ id: 'i', name: 'apart', op: 'add', args: { A: ref('g'), B: ref('h') } },
-						{ id: 'j', name: 'glow', op: 'div', args: { A: num(0.02), B: ref('i') } },
-						{ id: 'k', name: 'paint', op: 'mix', args: { A: col('#0b1020'), B: col('#6ee7ff'), T: ref('j') } }
-					],
-					color: ref('k')
-				}
-			},
-			{
-				label: 'big',
-				program: {
-					steps: [
-						{ id: 'a', name: 'speed x', op: 'mul', args: { A: inp('time'), B: num(0.31) } },
-						{ id: 'b', name: 'ball x', op: 'wave', args: { N: ref('a') } },
-						{ id: 'c', name: 'speed y', op: 'mul', args: { A: inp('time'), B: num(0.23) } },
-						{ id: 'd', name: 'ball y', op: 'wave', args: { N: ref('c') } },
-						{ id: 'e', name: 'away x', op: 'sub', args: { A: inp('x'), B: ref('b') } },
-						{ id: 'f', name: 'away y', op: 'sub', args: { A: inp('y'), B: ref('d') } },
-						{ id: 'g', name: 'xx', op: 'mul', args: { A: ref('e'), B: ref('e') } },
-						{ id: 'h', name: 'yy', op: 'mul', args: { A: ref('f'), B: ref('f') } },
-						{ id: 'i', name: 'apart', op: 'add', args: { A: ref('g'), B: ref('h') } },
-						{ id: 'j', name: 'glow', op: 'div', args: { A: num(0.02), B: ref('i') } },
-						{ id: 'k', name: 'ball 2 x', op: 'sub', args: { A: num(1), B: ref('b') } },
-						{ id: 'l', name: 'ball 2 y', op: 'sub', args: { A: num(1), B: ref('d') } },
-						{ id: 'm', name: 'away 2 x', op: 'sub', args: { A: inp('x'), B: ref('k') } },
-						{ id: 'n', name: 'away 2 y', op: 'sub', args: { A: inp('y'), B: ref('l') } },
-						{ id: 'o', name: 'xx 2', op: 'mul', args: { A: ref('m'), B: ref('m') } },
-						{ id: 'p', name: 'yy 2', op: 'mul', args: { A: ref('n'), B: ref('n') } },
-						{ id: 'q', name: 'apart 2', op: 'add', args: { A: ref('o'), B: ref('p') } },
-						{ id: 'r', name: 'glow 2', op: 'div', args: { A: num(0.02), B: ref('q') } },
-						{ id: 's', name: 'both', op: 'add', args: { A: ref('j'), B: ref('r') } },
-						{ id: 't', name: 'base', op: 'mix', args: { A: col('#05060f'), B: col('#22d3ee'), T: ref('s') } },
-						{ id: 'u', name: 'hot', op: 'sub', args: { A: ref('s'), B: num(1.4) } },
-						{ id: 'v', name: 'hot!', op: 'mul', args: { A: ref('u'), B: num(6) } },
-						{ id: 'w', name: 'paint', op: 'mix', args: { A: ref('t'), B: col('#ffffff'), T: ref('v') } }
-					],
-					color: ref('w')
-				}
-			}
-		]
-	},
-{
-		name: 'Flame',
-		dim: '3D',
-		section: 'gallery',
-		tiers: [
-			{
-				label: 'small',
-				program: {
-					steps: [
-						...flameCoords,
-						...flameShape,
-						...flameGlow('d0'),
-						{
-							id: 'paint',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#0a0402'), B: col('#ff801a'), T: ref('pw') }
-						}
-					],
-					color: ref('paint')
-				}
-			},
-			{
-				label: 'medium',
-				program: {
-					steps: [
-						...flameCoords,
-						...flameShape,
-						...flameNoise1,
-						{ id: 'nc', name: 'nc', op: 'sub', args: { A: ref('n1'), B: num(0.5) } },
-						...flameDistort('nc'),
-						...flameGlow('d'),
-						{
-							id: 'core',
-							name: 'core',
-							op: 'mix',
-							args: { A: col('#ff801a'), B: col('#ffe680'), T: ref('pw') }
-						},
-						{
-							id: 'paint',
-							name: 'paint',
-							op: 'mix',
-							args: { A: col('#0a0402'), B: ref('core'), T: ref('pw') }
-						}
-					],
-					color: ref('paint')
-				}
-			},
-			{
-				// The real thing: XT95's raymarched flame, 64 laps of a
-				// repeat block marching a ray through 3D noise.
-				label: 'big',
-				program: {
-					steps: [
-						...flameCoords,
-						...flameRay,
-						loop('march', 64, flameMarchBody),
-						{ id: 'pyf', name: 'end y', op: 'sub', args: { A: ref('qy'), B: num(2) } },
-						{ id: 'cm1', name: 'cm1', op: 'mul', args: { A: ref('pyf'), B: num(0.02) } },
-						{ id: 'cm2', name: 'cm2', op: 'add', args: { A: ref('cm1'), B: num(0.4) } },
-						{
-							id: 'colm',
-							name: 'tint',
-							op: 'mix',
-							args: { A: col('#1a80ff'), B: col('#ff801a'), T: ref('cm2') }
-						},
-						{ id: 'g2', name: 'g2', op: 'mul', args: { A: ref('glow'), B: num(2) } },
-						{ id: 'g4', name: 'bright', op: 'pow', args: { A: ref('g2'), B: num(4) } },
-						{ id: 'paint', name: 'paint', op: 'mul', args: { A: ref('colm'), B: ref('g4') } }
-					],
-					color: ref('paint')
-				}
-			}
-		]
-	},
-{
 		// The classic warp-speed star tunnel. The whole trick: chop space
 		// into grid cells, give every cell one star with a random depth
 		// (noise sampled at whole numbers IS a plain random number), and
@@ -3089,6 +2760,81 @@ export const families = [{
 						...clockHand('n', 'mm', 0.85, 0.015, '#000000', 'scol'),
 						...clockHand('h', 'hh', 0.55, 0.015, '#000000', 'ncol'),
 						...clockCenter('hcol')
+					],
+					color: ref('paint')
+				}
+			}
+		]
+	},
+{
+		name: 'Flame',
+		dim: '3D',
+		section: 'gallery',
+		tiers: [
+			{
+				label: 'small',
+				program: {
+					steps: [
+						...flameCoords,
+						...flameShape,
+						...flameGlow('d0'),
+						{
+							id: 'paint',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0a0402'), B: col('#ff801a'), T: ref('pw') }
+						}
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				label: 'medium',
+				program: {
+					steps: [
+						...flameCoords,
+						...flameShape,
+						...flameNoise1,
+						{ id: 'nc', name: 'nc', op: 'sub', args: { A: ref('n1'), B: num(0.5) } },
+						...flameDistort('nc'),
+						...flameGlow('d'),
+						{
+							id: 'core',
+							name: 'core',
+							op: 'mix',
+							args: { A: col('#ff801a'), B: col('#ffe680'), T: ref('pw') }
+						},
+						{
+							id: 'paint',
+							name: 'paint',
+							op: 'mix',
+							args: { A: col('#0a0402'), B: ref('core'), T: ref('pw') }
+						}
+					],
+					color: ref('paint')
+				}
+			},
+			{
+				// The real thing: XT95's raymarched flame, 64 laps of a
+				// repeat block marching a ray through 3D noise.
+				label: 'big',
+				program: {
+					steps: [
+						...flameCoords,
+						...flameRay,
+						loop('march', 64, flameMarchBody),
+						{ id: 'pyf', name: 'end y', op: 'sub', args: { A: ref('qy'), B: num(2) } },
+						{ id: 'cm1', name: 'cm1', op: 'mul', args: { A: ref('pyf'), B: num(0.02) } },
+						{ id: 'cm2', name: 'cm2', op: 'add', args: { A: ref('cm1'), B: num(0.4) } },
+						{
+							id: 'colm',
+							name: 'tint',
+							op: 'mix',
+							args: { A: col('#1a80ff'), B: col('#ff801a'), T: ref('cm2') }
+						},
+						{ id: 'g2', name: 'g2', op: 'mul', args: { A: ref('glow'), B: num(2) } },
+						{ id: 'g4', name: 'bright', op: 'pow', args: { A: ref('g2'), B: num(4) } },
+						{ id: 'paint', name: 'paint', op: 'mul', args: { A: ref('colm'), B: ref('g4') } }
 					],
 					color: ref('paint')
 				}
@@ -3200,13 +2946,833 @@ export const families = [{
 				}
 			}
 		]
-	},
+	}
+
 ];
 
-/** "Start fresh": Pulse glow — one wave of time so the screen is alive. */
+// ---------------------------------------------------------------------------
+// The potion book is a course, not an operation catalog. Each chapter keeps
+// one visual idea on screen and adds one new piece of thinking at a time.
+// Finished, deliberately complex recipes live in the showcase below instead
+// of pretending to be the next lesson.
+
+const legacyProgram = (familyName, tierLabel) =>
+	legacyFamilies.find((family) => family.name === familyName)?.tiers.find((tier) => tier.label === tierLabel)
+		?.program;
+
+const colorCourse = {
+	name: 'Color',
+	dim: 'start',
+	section: 'learn',
+	phase: 'Foundations',
+	tagline: 'Color the canvas, then let position steer the blend.',
+	tiers: [
+		{
+			label: 'solid',
+			newIdea: 'one value',
+			teaches: 'Start with the final color: one choice reaches every pixel.',
+			program: { steps: [], color: col('#312e81') }
+		},
+		{
+			label: 'gradient',
+			newIdea: 'mix + y',
+			teaches: 'Use y to blend from a midnight horizon into warm light.',
+			program: {
+				steps: [
+					fst('paint', 'mix', { A: col('#111827'), B: col('#fb7185'), T: inp('y') }, 'sky')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'diagonal',
+			newIdea: 'x + y',
+			teaches: 'Combine x and y so the same blend can travel across two dimensions.',
+			program: {
+				steps: [
+					fst('both', 'add', { A: inp('x'), B: inp('y') }, 'x + y'),
+					fst('balance', 'mul', { A: ref('both'), B: num(0.5) }, 'balance'),
+					fst('paint', 'mix', { A: col('#06b6d4'), B: col('#7c3aed'), T: ref('balance') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		}
+	]
+};
+
+const patternCourse = {
+	name: 'Pattern',
+	dim: '2D',
+	section: 'learn',
+	phase: 'Foundations',
+	tagline: 'Turn one wave into stripes, checks, and motion.',
+	tiers: [
+		{
+			label: 'stripes',
+			newIdea: 'wave',
+			teaches: 'Stretch x, then feed it through wave to make repeating light.',
+			program: {
+				steps: [
+					fst('wide', 'mul', { A: inp('x'), B: num(6) }, 'six across'),
+					fst('bars', 'fn:wave', { N: ref('wide') }, 'stripes'),
+					fst('paint', 'mix', { A: col('#172554'), B: col('#facc15'), T: ref('bars') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'checks',
+			newIdea: 'a second axis',
+			teaches: 'Build the same wave on y and multiply the two patterns together.',
+			program: {
+				steps: [
+					fst('wide', 'mul', { A: inp('x'), B: num(6) }, 'six across'),
+					fst('bars', 'fn:wave', { N: ref('wide') }, 'x stripes'),
+					fst('tall', 'mul', { A: inp('y'), B: num(6) }, 'six up'),
+					fst('rows', 'fn:wave', { N: ref('tall') }, 'y stripes'),
+					fst('checks', 'mul', { A: ref('bars'), B: ref('rows') }, 'checks'),
+					fst('paint', 'mix', { A: col('#083344'), B: col('#67e8f9'), T: ref('checks') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'scroll',
+			newIdea: 'time',
+			teaches: 'Add time to one direction and subtract it from the other.',
+			program: {
+				steps: [
+					fst('clock', 'mul', { A: inp('time'), B: num(0.35) }, 'slow time'),
+					fst('wide', 'mul', { A: inp('x'), B: num(6) }, 'six across'),
+					fst('xmove', 'add', { A: ref('wide'), B: ref('clock') }, 'slide x'),
+					fst('bars', 'fn:wave', { N: ref('xmove') }, 'x stripes'),
+					fst('tall', 'mul', { A: inp('y'), B: num(6) }, 'six up'),
+					fst('ymove', 'sub', { A: ref('tall'), B: ref('clock') }, 'slide y'),
+					fst('rows', 'fn:wave', { N: ref('ymove') }, 'y stripes'),
+					fst('checks', 'mul', { A: ref('bars'), B: ref('rows') }, 'checks'),
+					fst('paint', 'mix', { A: col('#1e1b4b'), B: col('#f0abfc'), T: ref('checks') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		}
+	]
+};
+
+const centeredDistance = [
+	fst('ox', 'sub', { A: inp('x'), B: num(0.5) }, 'center x'),
+	fst('oy', 'sub', { A: inp('y'), B: num(0.5) }, 'center y'),
+	fst('xx', 'mul', { A: ref('ox'), B: ref('ox') }, 'x squared'),
+	fst('yy', 'mul', { A: ref('oy'), B: ref('oy') }, 'y squared'),
+	fst('sum', 'add', { A: ref('xx'), B: ref('yy') }, 'squares together'),
+	fst('dist', 'sqrt', { A: ref('sum') }, 'distance')
+];
+
+const shapeCourse = {
+	name: 'Shape',
+	dim: '2D',
+	section: 'learn',
+	phase: 'Fields',
+	tagline: 'Measure from the center, cut a silhouette, then polish its edge.',
+	tiers: [
+		{
+			label: 'distance',
+			newIdea: 'distance',
+			teaches: 'Square x and y, add them, and take the root to measure from the center.',
+			program: {
+				steps: [
+					...centeredDistance,
+					fst('shade', 'mul', { A: ref('dist'), B: num(1.7) }, 'stretch'),
+					fst('paint', 'mix', { A: col('#a5f3fc'), B: col('#111827'), T: ref('shade') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'disc',
+			newIdea: 'smoothstep',
+			teaches: 'Turn distance into a soft-edged switch with smoothstep.',
+			program: {
+				steps: [
+					...centeredDistance,
+					fst('edge', 'smoothstep', { A: num(0.28), B: num(0.3), T: ref('dist') }, 'soft edge'),
+					fst('fill', 'sub', { A: num(1), B: ref('edge') }, 'inside'),
+					fst('paint', 'mix', { A: col('#0f172a'), B: col('#fb7185'), T: ref('fill') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'neon ring',
+			newIdea: 'abs + layers',
+			teaches: 'Use abs to fold distance around a radius, then layer a halo and a bright core.',
+			program: {
+				steps: [
+					...centeredDistance,
+					fst('offset', 'sub', { A: ref('dist'), B: num(0.31) }, 'ring radius'),
+					fst('rim', 'abs', { A: ref('offset') }, 'distance to ring'),
+					fst('haloedge', 'smoothstep', { A: num(0), B: num(0.1), T: ref('rim') }, 'halo edge'),
+					fst('halo', 'sub', { A: num(1), B: ref('haloedge') }, 'halo'),
+					fst('base', 'mix', { A: col('#09051f'), B: col('#22d3ee'), T: ref('halo') }, 'blue glow'),
+					fst('coreedge', 'smoothstep', { A: num(0), B: num(0.018), T: ref('rim') }, 'core edge'),
+					fst('core', 'sub', { A: num(1), B: ref('coreedge') }, 'bright core'),
+					fst('paint', 'mix', { A: ref('base'), B: col('#ffffff'), T: ref('core') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		}
+	]
+};
+
+const motionPulseBase = [
+	fst('dist', 'fn:dist', {}, 'distance'),
+	fst('turn', 'mul', { A: inp('time'), B: num(1.4) }, 'slow time'),
+	fst('swing', 'sin', { A: ref('turn') }, 'breathe'),
+	fst('breath', 'mul', { A: ref('swing'), B: num(0.045) }, 'small change'),
+	fst('radius', 'add', { A: ref('breath'), B: num(0.27) }, 'moving radius'),
+	fst('offset', 'sub', { A: ref('dist'), B: ref('radius') }, 'ring radius'),
+	fst('rim', 'abs', { A: ref('offset') }, 'distance to ring'),
+	fst('haloedge', 'smoothstep', { A: num(0), B: num(0.1), T: ref('rim') }, 'halo edge'),
+	fst('halo', 'sub', { A: num(1), B: ref('haloedge') }, 'halo'),
+	fst('base', 'mix', { A: col('#07051b'), B: col('#22d3ee'), T: ref('halo') }, 'blue glow'),
+	fst('coreedge', 'smoothstep', { A: num(0), B: num(0.018), T: ref('rim') }, 'core edge'),
+	fst('core', 'sub', { A: num(1), B: ref('coreedge') }, 'bright core'),
+	fst('pulsepaint', 'mix', { A: ref('base'), B: col('#ffffff'), T: ref('core') }, 'breathing ring')
+];
+
+const motionRippleBase = [
+	...motionPulseBase,
+	fst('many', 'mul', { A: ref('dist'), B: num(7) }, 'many rings'),
+	fst('ripplespeed', 'mul', { A: inp('time'), B: num(0.38) }, 'travel'),
+	fst('ripplephase', 'sub', { A: ref('many'), B: ref('ripplespeed') }, 'move outward'),
+	fst('rings', 'fn:wave', { N: ref('ripplephase') }, 'rings'),
+	fst('shine', 'pow', { A: ref('rings'), B: num(4) }, 'thin rings'),
+	fst('fade0', 'sub', { A: num(1), B: ref('dist') }, 'fade away'),
+	fst('fade', 'clamp', { A: ref('fade0'), LO: num(0), HI: num(1) }, 'keep visible range'),
+	fst('ringmask', 'mul', { A: ref('shine'), B: ref('fade') }, 'fading ripples'),
+	fst('ripplepaint', 'mix', { A: ref('pulsepaint'), B: col('#a78bfa'), T: ref('ringmask') }, 'ring and ripples')
+];
+
+const motionCourse = {
+	name: 'Motion',
+	dim: 'time',
+	section: 'learn',
+	phase: 'Fields',
+	tagline: 'Make one neon ring breathe, send ripples from it, then add an orbiting spark.',
+	tiers: [
+		{
+			label: 'breathe',
+			newIdea: 'time → radius',
+			teaches: 'Reuse distance, then let a slow sine wave change the radius of the neon ring.',
+			program: {
+				steps: motionPulseBase,
+				color: ref('pulsepaint')
+			}
+		},
+		{
+			label: 'ripples',
+			newIdea: 'distance as phase',
+			teaches: 'Keep the breathing ring and use its distance as the phase of waves moving outward.',
+			program: {
+				steps: motionRippleBase,
+				color: ref('ripplepaint')
+			}
+		},
+		{
+			label: 'orbit',
+			newIdea: 'sine + cosine',
+			teaches: 'Keep the ring and ripples, then use sine and cosine as x and y for one orbiting spark.',
+			program: {
+				steps: [
+					...motionRippleBase,
+					fst('orbitturn', 'mul', { A: inp('time'), B: num(1.5) }, 'orbit turn'),
+					fst('cx0', 'cos', { A: ref('orbitturn') }, 'circle x'),
+					fst('cy0', 'sin', { A: ref('orbitturn') }, 'circle y'),
+					fst('cx1', 'mul', { A: ref('cx0'), B: num(0.28) }, 'orbit x'),
+					fst('cy1', 'mul', { A: ref('cy0'), B: num(0.28) }, 'orbit y'),
+					fst('cx', 'add', { A: ref('cx1'), B: num(0.5) }, 'point x'),
+					fst('cy', 'add', { A: ref('cy1'), B: num(0.5) }, 'point y'),
+					fst('dx', 'sub', { A: inp('x'), B: ref('cx') }, 'away x'),
+					fst('dy', 'sub', { A: inp('y'), B: ref('cy') }, 'away y'),
+					fst('xx', 'mul', { A: ref('dx'), B: ref('dx') }, 'x squared'),
+					fst('yy', 'mul', { A: ref('dy'), B: ref('dy') }, 'y squared'),
+					fst('apart', 'add', { A: ref('xx'), B: ref('yy') }, 'distance squared'),
+					fst('glow', 'div', { A: num(0.012), B: ref('apart') }, 'glow'),
+					fst('held', 'clamp', { A: ref('glow'), LO: num(0), HI: num(1) }, 'hold 0 to 1'),
+					fst('paint', 'mix', { A: ref('ripplepaint'), B: col('#fef08a'), T: ref('held') }, 'add spark')
+				],
+				color: ref('paint')
+			}
+		}
+	]
+};
+
+const polarCourse = {
+	name: 'Polar',
+	dim: '2D',
+	section: 'learn',
+	phase: 'Fields',
+	tagline: 'Turn the circular motion you just made into a coordinate system of its own.',
+	tiers: [
+		{
+			label: 'sweep',
+			newIdea: 'angle',
+			teaches: 'Reuse finished angle, distance, and rainbow helpers so every direction gets a color.',
+			program: {
+				steps: [
+					fst('angle', 'fn:angle', {}, 'angle'),
+					fst('dist', 'fn:dist', {}, 'distance'),
+					fst('colors', 'fn:rainbow', { N: ref('angle') }, 'colors'),
+					fst('fade', 'sub', { A: num(1), B: ref('dist') }, 'fade out'),
+					fst('paint', 'mul', { A: ref('colors'), B: ref('fade') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'pinwheel',
+			newIdea: 'repeat around a center',
+			teaches: 'Multiply angle into arms, then sharpen the wave and fade its tips.',
+			program: {
+				steps: [
+					fst('angle', 'fn:angle', {}, 'angle'),
+					fst('dist', 'fn:dist', {}, 'distance'),
+					fst('arms', 'mul', { A: ref('angle'), B: num(8) }, 'eight arms'),
+					fst('wave', 'fn:wave', { N: ref('arms') }, 'soft arms'),
+					fst('sharp', 'pow', { A: ref('wave'), B: num(2) }, 'sharp arms'),
+					fst('fade', 'sub', { A: num(1), B: ref('dist') }, 'fade tips'),
+					fst('lit', 'mul', { A: ref('sharp'), B: ref('fade') }, 'lit arms'),
+					fst('paint', 'mix', { A: col('#0b071e'), B: col('#fde047'), T: ref('lit') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'spiral',
+			newIdea: 'angle + distance',
+			teaches: 'Add distance to angle and subtract time so the pinwheel curls and turns.',
+			program: {
+				steps: [
+					fst('angle', 'fn:angle', {}, 'angle'),
+					fst('dist', 'fn:dist', {}, 'distance'),
+					fst('arms', 'mul', { A: ref('angle'), B: num(9) }, 'nine arms'),
+					fst('curl', 'mul', { A: ref('dist'), B: num(4) }, 'curl'),
+					fst('shape', 'add', { A: ref('arms'), B: ref('curl') }, 'spiral'),
+					fst('clock', 'mul', { A: inp('time'), B: num(0.3) }, 'slow time'),
+					fst('move', 'sub', { A: ref('shape'), B: ref('clock') }, 'turn'),
+					fst('wave', 'fn:wave', { N: ref('move') }, 'soft arms'),
+					fst('sharp', 'pow', { A: ref('wave'), B: num(2.4) }, 'sharp arms'),
+					fst('colors', 'fn:rainbow', { N: ref('shape') }, 'colors'),
+					fst('fade', 'sub', { A: num(1), B: ref('dist') }, 'fade tips'),
+					fst('mask', 'mul', { A: ref('sharp'), B: ref('fade') }, 'mask'),
+					fst('paint', 'mix', { A: col('#05010f'), B: ref('colors'), T: ref('mask') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		}
+	]
+};
+
+const textureCourse = {
+	name: 'Texture',
+	dim: 'noise',
+	section: 'learn',
+	phase: 'Fields',
+	tagline: 'Sample randomness, animate it, then use noise to bend noise.',
+	tiers: [
+		{
+			label: 'grain',
+			newIdea: 'noise',
+			teaches: 'Scale x and y before sampling noise to choose the size of the texture.',
+			program: {
+				steps: [
+					fst('sx', 'mul', { A: inp('x'), B: num(7) }, 'zoom x'),
+					fst('sy', 'mul', { A: inp('y'), B: num(7) }, 'zoom y'),
+					fst('grain', 'noisexy', { A: ref('sx'), B: ref('sy') }, 'grain'),
+					fst('paint', 'mix', { A: col('#172554'), B: col('#93c5fd'), T: ref('grain') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'drift',
+			newIdea: 'move coordinates',
+			teaches: 'Move the sample point with time, then sharpen the cloudy field.',
+			program: {
+				steps: [
+					fst('sx', 'mul', { A: inp('x'), B: num(5) }, 'zoom x'),
+					fst('sy', 'mul', { A: inp('y'), B: num(5) }, 'zoom y'),
+					fst('clock', 'mul', { A: inp('time'), B: num(0.25) }, 'drift'),
+					fst('move', 'sub', { A: ref('sy'), B: ref('clock') }, 'move up'),
+					fst('cloud', 'noisexy', { A: ref('sx'), B: ref('move') }, 'cloud'),
+					fst('deep', 'pow', { A: ref('cloud'), B: num(1.8) }, 'deeper contrast'),
+					fst('paint', 'mix', { A: col('#052e2b'), B: col('#5eead4'), T: ref('deep') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		},
+		{
+			label: 'flow',
+			newIdea: 'noise bends noise',
+			teaches: 'Use one noise field to bend the coordinates of a second field.',
+			program: {
+				steps: [
+					fst('sx', 'mul', { A: inp('x'), B: num(3) }, 'zoom x'),
+					fst('sy', 'mul', { A: inp('y'), B: num(3) }, 'zoom y'),
+					fst('clock', 'mul', { A: inp('time'), B: num(0.2) }, 'drift'),
+					fst('move', 'sub', { A: ref('sy'), B: ref('clock') }, 'move up'),
+					fst('warp', 'snoise', { A: ref('sx'), B: ref('move') }, 'first noise'),
+					fst('bend', 'mul', { A: ref('warp'), B: num(1.4) }, 'bend'),
+					fst('qx', 'add', { A: ref('sx'), B: ref('bend') }, 'bent x'),
+					fst('qy', 'sub', { A: ref('move'), B: ref('bend') }, 'bent y'),
+					fst('detail', 'snoise', { A: ref('qx'), B: ref('qy') }, 'second noise'),
+					fst('lift', 'add', { A: ref('detail'), B: num(0.5) }, 'lift'),
+					fst('paint', 'mix', { A: col('#10002b'), B: col('#fb7185'), T: ref('lift') }, 'paint')
+				],
+				color: ref('paint')
+			}
+		}
+	]
+};
+
+const repeatCourse = {
+	name: 'Repeat',
+	dim: 'loops',
+	section: 'learn',
+	phase: 'Systems',
+	tagline: 'Repeat the circular ideas you know, place a system of orbiters, then turn it into a comet.',
+	tiers: [
+		{
+			label: 'rings',
+			newIdea: 'loop + accumulator',
+			teaches: 'Use lap as a growing radius and add each ring into an accumulator.',
+			program: legacyProgram('Repeat', 'loop')
+		},
+		{
+			label: 'orbiters',
+			newIdea: 'lap → angle',
+			teaches: 'Combine lap, sine, and cosine to place six glowing points around a circle.',
+			program: legacyProgram('Loops', 'medium')
+		},
+		{
+			label: 'comet',
+			newIdea: 'color accumulator',
+			teaches: 'Make the final leap: each lap looks farther back in time and carries its own color.',
+			program: legacyProgram('Loops', 'big')
+		}
+	]
+};
+
+// ---- A continuous introduction to 3D -------------------------------------
+// These six lessons deliberately share the same camera and scene. The list
+// grows from visible ray directions, to an analytic plane, to a grid, then to
+// progressively richer raymarched terrain. There are no unrelated resets or
+// hundred-step jumps between lessons.
+
+const terrain3DCamera = [
+	fst('ox3', 'sub', { A: inp('x'), B: num(0.5) }, 'center x'),
+	fst('sx3', 'mul', { A: ref('ox3'), B: num(2) }, 'screen x'),
+	fst('oy3', 'sub', { A: inp('y'), B: num(0.5) }, 'center y'),
+	fst('sy3', 'mul', { A: ref('oy3'), B: num(2) }, 'screen y'),
+	fst('lx3', 'mul', { A: ref('sx3'), B: num(1.05) }, 'lens x'),
+	fst('ly30', 'mul', { A: ref('sy3'), B: num(0.72) }, 'lens y'),
+	fst('ly3', 'sub', { A: ref('ly30'), B: num(0.18) }, 'look down'),
+	fst('lz3', 'just', { A: num(-1.3) }, 'lens depth'),
+	fst('lxx3', 'mul', { A: ref('lx3'), B: ref('lx3') }),
+	fst('lyy3', 'mul', { A: ref('ly3'), B: ref('ly3') }),
+	fst('lzz3', 'mul', { A: ref('lz3'), B: ref('lz3') }),
+	fst('ls13', 'add', { A: ref('lxx3'), B: ref('lyy3') }),
+	fst('ls23', 'add', { A: ref('ls13'), B: ref('lzz3') }),
+	fst('len3', 'sqrt', { A: ref('ls23') }, 'ray length'),
+	fst('rdx3', 'div', { A: ref('lx3'), B: ref('len3') }, 'ray x'),
+	fst('rdy3', 'div', { A: ref('ly3'), B: ref('len3') }, 'ray y'),
+	fst('rdz3', 'div', { A: ref('lz3'), B: ref('len3') }, 'ray z'),
+	fst('glide3', 'mul', { A: inp('time'), B: num(0.12) }, 'camera glide'),
+	fst('rox3', 'just', { A: ref('glide3') }, 'eye x'),
+	fst('roy3', 'just', { A: num(1.15) }, 'eye y'),
+	fst('roz3', 'just', { A: num(2.6) }, 'eye z')
+];
+
+const rayViewProgram = {
+	steps: [
+		...terrain3DCamera,
+		fst('rayr0', 'mul', { A: ref('rdx3'), B: num(0.5) }),
+		fst('rayr', 'add', { A: ref('rayr0'), B: num(0.5) }, 'ray red'),
+		fst('rayg0', 'mul', { A: ref('rdy3'), B: num(0.5) }),
+		fst('rayg', 'add', { A: ref('rayg0'), B: num(0.5) }, 'ray green'),
+		fst('rayb', 'abs', { A: ref('rdz3') }, 'ray blue'),
+		fst('paint3', 'rgb', { R: ref('rayr'), G: ref('rayg'), B: ref('rayb') }, 'paint rays')
+	],
+	color: ref('paint3')
+};
+
+const terrainPlaneBase = [
+	...terrain3DCamera,
+	fst('down3', 'sub', { A: num(0), B: ref('rdy3') }, 'ray points down'),
+	fst('safe3', 'max', { A: ref('down3'), B: num(0.02) }, 'safe direction'),
+	fst('planet3', 'div', { A: ref('roy3'), B: ref('safe3') }, 'distance to ground'),
+	fst('pmx3', 'mul', { A: ref('rdx3'), B: ref('planet3') }),
+	fst('planex3', 'add', { A: ref('rox3'), B: ref('pmx3') }, 'ground x'),
+	fst('pmz3', 'mul', { A: ref('rdz3'), B: ref('planet3') }),
+	fst('planez3', 'add', { A: ref('roz3'), B: ref('pmz3') }, 'ground z'),
+	fst('ground3', 'smoothstep', { A: num(0), B: num(0.08), T: ref('down3') }, 'below horizon'),
+	fst('far30', 'mul', { A: ref('planet3'), B: num(0.07) }, 'distance haze'),
+	fst('far31', 'add', { A: ref('far30'), B: num(1) }),
+	fst('fade3', 'div', { A: num(1), B: ref('far31') }, 'near is bright'),
+	fst('sky3', 'mix', { A: col('#fda4af'), B: col('#172554'), T: inp('y') }, 'sky'),
+	fst('land3', 'mix', { A: col('#172033'), B: col('#0f766e'), T: ref('fade3') }, 'ground color')
+];
+
+const groundPlaneProgram = {
+	steps: [
+		...terrainPlaneBase,
+		fst('paint3', 'mix', { A: ref('sky3'), B: ref('land3'), T: ref('ground3') }, 'paint ground')
+	],
+	color: ref('paint3')
+};
+
+const perspectiveGridProgram = {
+	steps: [
+		...terrainPlaneBase,
+		fst('gridx3', 'mul', { A: ref('planex3'), B: num(1.5) }, 'grid x'),
+		fst('gridz3', 'mul', { A: ref('planez3'), B: num(1.5) }, 'grid z'),
+		fst('cellx3', 'floor', { A: ref('gridx3') }, 'column'),
+		fst('cellz3', 'floor', { A: ref('gridz3') }, 'row'),
+		fst('cell3', 'add', { A: ref('cellx3'), B: ref('cellz3') }, 'cell id'),
+		fst('check3', 'mod', { A: ref('cell3'), B: num(2) }, 'checker'),
+		fst('gridlit3', 'mul', { A: ref('check3'), B: ref('fade3') }, 'fading checks'),
+		fst('tiles3', 'mix', { A: ref('land3'), B: col('#67e8f9'), T: ref('gridlit3') }, 'grid color'),
+		fst('paint3', 'mix', { A: ref('sky3'), B: ref('tiles3'), T: ref('ground3') }, 'paint grid')
+	],
+	color: ref('paint3')
+};
+
+function terrain3DHeight(prefix, xId, zId, detailed) {
+	const low = [
+		fst(prefix + 'lowx', 'mul', { A: ref(xId), B: num(0.55) }),
+		fst(prefix + 'lowz', 'mul', { A: ref(zId), B: num(0.55) }),
+		fst(prefix + 'lown', 'snoise', { A: ref(prefix + 'lowx'), B: ref(prefix + 'lowz') }, prefix + ' broad hills'),
+		fst(prefix + 'low', 'mul', { A: ref(prefix + 'lown'), B: num(0.34) })
+	];
+	if (!detailed) return [...low, fst(prefix + 'height', 'just', { A: ref(prefix + 'low') }, prefix + ' height')];
+	return [
+		...low,
+		fst(prefix + 'midx', 'mul', { A: ref(xId), B: num(1.35) }),
+		fst(prefix + 'midz', 'mul', { A: ref(zId), B: num(1.35) }),
+		fst(prefix + 'midn', 'snoise', { A: ref(prefix + 'midx'), B: ref(prefix + 'midz') }, prefix + ' ridges'),
+		fst(prefix + 'mid', 'mul', { A: ref(prefix + 'midn'), B: num(0.12) }),
+		fst(prefix + 'finex', 'mul', { A: ref(xId), B: num(3.2) }),
+		fst(prefix + 'finez', 'mul', { A: ref(zId), B: num(3.2) }),
+		fst(prefix + 'finen', 'snoise', { A: ref(prefix + 'finex'), B: ref(prefix + 'finez') }, prefix + ' detail'),
+		fst(prefix + 'fine', 'mul', { A: ref(prefix + 'finen'), B: num(0.035) }),
+		fst(prefix + 'sum', 'add', { A: ref(prefix + 'low'), B: ref(prefix + 'mid') }),
+		fst(prefix + 'height', 'add', { A: ref(prefix + 'sum'), B: ref(prefix + 'fine') }, prefix + ' height')
+	];
+}
+
+function terrain3DMarchBody(detailed, lit) {
+	const body = [
+		fst('tmx3', 'mul', { A: ref('rdx3'), B: ref('march3') }),
+		fst('px3', 'add', { A: ref('rox3'), B: ref('tmx3') }, 'point x'),
+		fst('tmy3', 'mul', { A: ref('rdy3'), B: ref('march3') }),
+		fst('py3', 'add', { A: ref('roy3'), B: ref('tmy3') }, 'point y'),
+		fst('tmz3', 'mul', { A: ref('rdz3'), B: ref('march3') }),
+		fst('pz3', 'add', { A: ref('roz3'), B: ref('tmz3') }, 'point z'),
+		...terrain3DHeight('h3', 'px3', 'pz3', detailed),
+		fst('distance3', 'sub', { A: ref('py3'), B: ref('h3height') }, 'distance to terrain'),
+		fst('pace30', 'mul', { A: ref('distance3'), B: num(0.65) }, 'safe pace'),
+		fst('pace3', 'max', { A: ref('pace30'), B: num(0.025) }, 'step forward'),
+		fst('march3', 'add', { A: ref('march3'), B: ref('pace3') }, 'march'),
+		fst('away3', 'abs', { A: ref('distance3') }),
+		fst('edge3', 'smoothstep', { A: num(0), B: num(0.08), T: ref('away3') }, 'surface edge'),
+		fst('near3', 'sub', { A: num(1), B: ref('edge3') }, 'near surface'),
+		fst('hit3', 'max', { A: ref('hit3'), B: ref('near3') }, 'terrain hit'),
+		fst('elevation3', 'mix', { A: ref('elevation3'), B: ref('h3height'), T: ref('near3') }, 'elevation'),
+		fst('depth3', 'mix', { A: ref('depth3'), B: ref('march3'), T: ref('near3') }, 'depth')
+	];
+	if (!lit) return body;
+	return [
+		...body,
+		fst('sunx3', 'add', { A: ref('px3'), B: num(0.07) }, 'toward sun x'),
+		fst('sunz3', 'add', { A: ref('pz3'), B: num(0.04) }, 'toward sun z'),
+		...terrain3DHeight('sunh3', 'sunx3', 'sunz3', true),
+		fst('slope3', 'sub', { A: ref('sunh3height'), B: ref('h3height') }, 'sunward slope'),
+		fst('slopegain3', 'mul', { A: ref('slope3'), B: num(7) }, 'slope strength'),
+		fst('shade30', 'sub', { A: num(0.72), B: ref('slopegain3') }, 'sun light'),
+		fst('shade3', 'clamp', { A: ref('shade30'), LO: num(0.18), HI: num(1) }, 'light and shadow'),
+		fst('light3', 'mix', { A: ref('light3'), B: ref('shade3'), T: ref('near3') }, 'remember light')
+	];
+}
+
+function terrain3DPaint(detailed, lit, atmosphere) {
+	const skyId = atmosphere ? 'sunsky3' : 'sky3';
+	const steps = [
+		fst('sky3', 'mix', { A: col('#fda4af'), B: col('#172554'), T: inp('y') }, 'sunset sky')
+	];
+	if (atmosphere) {
+		steps.push(
+			fst('backz3', 'sub', { A: num(0), B: ref('rdz3') }),
+			fst('sunr3', 'mul', { A: ref('rdx3'), B: num(0.35) }),
+			fst('suny3', 'mul', { A: ref('rdy3'), B: num(0.7) }),
+			fst('sunz3p', 'mul', { A: ref('backz3'), B: num(0.55) }),
+			fst('sunxy3', 'add', { A: ref('sunr3'), B: ref('suny3') }),
+			fst('sunaim3', 'add', { A: ref('sunxy3'), B: ref('sunz3p') }, 'look toward sun'),
+			fst('suncut3', 'sub', { A: ref('sunaim3'), B: num(0.82) }),
+			fst('sungain3', 'mul', { A: ref('suncut3'), B: num(6) }),
+			fst('sundisc3', 'clamp', { A: ref('sungain3'), LO: num(0), HI: num(1) }, 'sun disc'),
+			fst('sunsoft3', 'pow', { A: ref('sundisc3'), B: num(5) }, 'soft sun'),
+			fst('sunsky3', 'mix', { A: ref('sky3'), B: col('#fde68a'), T: ref('sunsoft3') }, 'sky and sun')
+		);
+	}
+	steps.push(
+		fst('elevlift3', 'add', { A: ref('elevation3'), B: num(0.45) }, 'height color'),
+		fst('grass3', 'mix', { A: col('#123524'), B: col('#84cc16'), T: ref('elevlift3') }, 'grass')
+	);
+	if (detailed) {
+		steps.push(
+			fst('rockmask3', 'smoothstep', { A: num(0.12), B: num(0.36), T: ref('elevation3') }, 'rock line'),
+			fst('rock3', 'mix', { A: ref('grass3'), B: col('#64748b'), T: ref('rockmask3') }, 'rock'),
+			fst('snowmask3', 'smoothstep', { A: num(0.34), B: num(0.5), T: ref('elevation3') }, 'snow line'),
+			fst('material3', 'mix', { A: ref('rock3'), B: col('#f8fafc'), T: ref('snowmask3') }, 'snow')
+		);
+	} else {
+		steps.push(fst('material3', 'just', { A: ref('grass3') }, 'terrain material'));
+	}
+	if (lit) steps.push(fst('litland3', 'mul', { A: ref('material3'), B: ref('light3') }, 'sunlit land'));
+	else steps.push(fst('litland3', 'just', { A: ref('material3') }, 'land'));
+	if (atmosphere) {
+		steps.push(
+			fst('fograw3', 'mul', { A: ref('depth3'), B: num(0.055) }, 'distance fog'),
+			fst('fog3', 'clamp', { A: ref('fograw3'), LO: num(0), HI: num(1) }, 'fog'),
+			fst('hazed3', 'mix', { A: ref('litland3'), B: ref(skyId), T: ref('fog3') }, 'hazed land')
+		);
+	} else {
+		steps.push(fst('hazed3', 'just', { A: ref('litland3') }, 'land'));
+	}
+	steps.push(fst('paint3', 'mix', { A: ref(skyId), B: ref('hazed3'), T: ref('hit3') }, 'paint world'));
+	return steps;
+}
+
+function terrain3DProgram(detailed, lit, atmosphere) {
+	return {
+		steps: [
+			...terrain3DCamera,
+			loop('terrainmarch3', atmosphere ? 48 : 36, terrain3DMarchBody(detailed, lit)),
+			...terrain3DPaint(detailed, lit, atmosphere)
+		],
+		color: ref('paint3')
+	};
+}
+
+// First raymarch project: one readable height field, presented as a
+// graphic dune scene rather than a stripped-down version of the alpine
+// finale. The sun is a screen-space accent; the dunes themselves are the
+// real 3D hit positions produced by the march.
+const dune3DPaint = [
+	fst('dunesky3', 'mix', { A: col('#2e1065'), B: col('#fb7185'), T: inp('y') }, 'desert sky'),
+	fst('sundx3', 'sub', { A: inp('x'), B: num(0.73) }, 'sun x'),
+	fst('sundy3', 'sub', { A: inp('y'), B: num(0.72) }, 'sun y'),
+	fst('sundxx3', 'mul', { A: ref('sundx3'), B: ref('sundx3') }),
+	fst('sundyy3', 'mul', { A: ref('sundy3'), B: ref('sundy3') }),
+	fst('sundsum3', 'add', { A: ref('sundxx3'), B: ref('sundyy3') }),
+	fst('sundist3', 'sqrt', { A: ref('sundsum3') }, 'sun distance'),
+	fst('sunedge3', 'smoothstep', { A: num(0.065), B: num(0.08), T: ref('sundist3') }, 'sun edge'),
+	fst('sunfill3', 'sub', { A: num(1), B: ref('sunedge3') }, 'sun'),
+	fst('dunesunsky3', 'mix', { A: ref('dunesky3'), B: col('#fef3c7'), T: ref('sunfill3') }, 'sky and sun'),
+	fst('duneheight3', 'add', { A: ref('elevation3'), B: num(0.42) }, 'warm by height'),
+	fst('dunesand3', 'mix', { A: col('#7c2d12'), B: col('#fbbf24'), T: ref('duneheight3') }, 'sand'),
+	fst('dunebands3', 'mul', { A: ref('elevation3'), B: num(11) }, 'sand bands'),
+	fst('dunewave3', 'fn:wave', { N: ref('dunebands3') }, 'strata'),
+	fst('dunesoft3', 'mul', { A: ref('dunewave3'), B: num(0.22) }, 'soft strata'),
+	fst('dunelit3', 'mix', { A: ref('dunesand3'), B: col('#fde68a'), T: ref('dunesoft3') }, 'sunlit ridges'),
+	fst('dunefograw3', 'mul', { A: ref('depth3'), B: num(0.05) }, 'distance haze'),
+	fst('dunefog3', 'clamp', { A: ref('dunefograw3'), LO: num(0), HI: num(1) }, 'haze'),
+	fst('dunehazed3', 'mix', { A: ref('dunelit3'), B: ref('dunesunsky3'), T: ref('dunefog3') }, 'distant dunes'),
+	fst('dunepaint3', 'mix', { A: ref('dunesunsky3'), B: ref('dunehazed3'), T: ref('hit3') }, 'paint dunes')
+];
+
+const dune3DProgram = {
+	steps: [
+		...terrain3DCamera,
+		loop('dunemarch3', 36, terrain3DMarchBody(false, false)),
+		...dune3DPaint
+	],
+	color: ref('dunepaint3')
+};
+
+// Second project: a completely different distance field. Space repeats
+// into cells; each cell grows a differently sized octahedral crystal and
+// min() joins those crystals to a ground plane. The loop remembers which
+// surface it hit so the paint pass can give the floor and facets different
+// materials.
+const crystalMarchBody = [
+	fst('cmx3', 'mul', { A: ref('rdx3'), B: ref('crystalmarch3') }),
+	fst('cpx3', 'add', { A: ref('rox3'), B: ref('cmx3') }, 'point x'),
+	fst('cmy3', 'mul', { A: ref('rdy3'), B: ref('crystalmarch3') }),
+	fst('cpy3', 'add', { A: ref('roy3'), B: ref('cmy3') }, 'point y'),
+	fst('cmz3', 'mul', { A: ref('rdz3'), B: ref('crystalmarch3') }),
+	fst('cpz3', 'add', { A: ref('roz3'), B: ref('cmz3') }, 'point z'),
+	fst('cxshift3', 'add', { A: ref('cpx3'), B: num(0.725) }),
+	fst('cxcellraw3', 'div', { A: ref('cxshift3'), B: num(1.45) }),
+	fst('cxcell3', 'floor', { A: ref('cxcellraw3') }, 'crystal column'),
+	fst('cqxwrap3', 'mod', { A: ref('cxshift3'), B: num(1.45) }),
+	fst('cqx3', 'sub', { A: ref('cqxwrap3'), B: num(0.725) }, 'repeat x'),
+	fst('czshift3', 'add', { A: ref('cpz3'), B: num(0.725) }),
+	fst('czcellraw3', 'div', { A: ref('czshift3'), B: num(1.45) }),
+	fst('czcell3', 'floor', { A: ref('czcellraw3') }, 'crystal row'),
+	fst('cqzwrap3', 'mod', { A: ref('czshift3'), B: num(1.45) }),
+	fst('cqz3', 'sub', { A: ref('cqzwrap3'), B: num(0.725) }, 'repeat z'),
+	fst('cseed3', 'noisexy', { A: ref('cxcell3'), B: ref('czcell3') }, 'cell variation'),
+	fst('csizespan3', 'mul', { A: ref('cseed3'), B: num(0.18) }),
+	fst('csize3', 'add', { A: ref('csizespan3'), B: num(0.28) }, 'crystal size'),
+	fst('ccenter3', 'div', { A: ref('csize3'), B: num(0.75) }, 'sit on ground'),
+	fst('cqy3', 'sub', { A: ref('cpy3'), B: ref('ccenter3') }, 'crystal y'),
+	fst('cax3', 'abs', { A: ref('cqx3') }),
+	fst('cay3', 'abs', { A: ref('cqy3') }),
+	fst('caz3', 'abs', { A: ref('cqz3') }),
+	fst('cxz3', 'add', { A: ref('cax3'), B: ref('caz3') }, 'four sides'),
+	fst('cxzshape3', 'mul', { A: ref('cxz3'), B: num(0.85) }),
+	fst('cyshape3', 'mul', { A: ref('cay3'), B: num(0.75) }),
+	fst('cdiamond3', 'add', { A: ref('cxzshape3'), B: ref('cyshape3') }, 'octahedron'),
+	fst('ccrystal3', 'sub', { A: ref('cdiamond3'), B: ref('csize3') }, 'crystal distance'),
+	fst('cground3', 'just', { A: ref('cpy3') }, 'ground distance'),
+	fst('cscene3', 'min', { A: ref('ccrystal3'), B: ref('cground3') }, 'nearest surface'),
+	fst('cpace03', 'mul', { A: ref('cscene3'), B: num(0.5) }, 'safe pace'),
+	fst('cpace3', 'max', { A: ref('cpace03'), B: num(0.02) }, 'step forward'),
+	fst('crystalmarch3', 'add', { A: ref('crystalmarch3'), B: ref('cpace3') }, 'march'),
+	fst('caway3', 'abs', { A: ref('cscene3') }),
+	fst('cedge3', 'smoothstep', { A: num(0), B: num(0.065), T: ref('caway3') }, 'surface edge'),
+	fst('cnear3', 'sub', { A: num(1), B: ref('cedge3') }, 'near surface'),
+	fst('cpickraw3', 'sub', { A: ref('cground3'), B: ref('ccrystal3') }),
+	fst('cpick3', 'smoothstep', { A: num(-0.04), B: num(0.04), T: ref('cpickraw3') }, 'crystal or floor'),
+	fst('crystalhit3', 'max', { A: ref('crystalhit3'), B: ref('cnear3') }, 'scene hit'),
+	fst('crystalkind3', 'mix', { A: ref('crystalkind3'), B: ref('cpick3'), T: ref('cnear3') }, 'remember material'),
+	fst('crystaldepth3', 'mix', { A: ref('crystaldepth3'), B: ref('crystalmarch3'), T: ref('cnear3') }, 'remember depth'),
+	fst('cfacetbias3', 'sub', { A: ref('cax3'), B: ref('caz3') }, 'facet direction'),
+	fst('cfacet3', 'smoothstep', { A: num(-0.18), B: num(0.18), T: ref('cfacetbias3') }, 'facet light'),
+	fst('crystalfacet3', 'mix', { A: ref('crystalfacet3'), B: ref('cfacet3'), T: ref('cnear3') }, 'remember facet')
+];
+
+const crystal3DPaint = [
+	fst('csky3', 'mix', { A: col('#020617'), B: col('#4c1d95'), T: inp('y') }, 'violet night'),
+	fst('cfloor3', 'just', { A: col('#0f0a2a') }, 'velvet floor'),
+	fst('ccolor3', 'mix', { A: col('#22d3ee'), B: col('#f472b6'), T: ref('crystalfacet3') }, 'crystal facets'),
+	fst('clight3', 'mix', { A: num(0.48), B: num(1), T: ref('crystalfacet3') }, 'facet light'),
+	fst('clit3', 'mul', { A: ref('ccolor3'), B: ref('clight3') }, 'lit crystal'),
+	fst('csurface3', 'mix', { A: ref('cfloor3'), B: ref('clit3'), T: ref('crystalkind3') }, 'surface material'),
+	fst('cfograw3', 'mul', { A: ref('crystaldepth3'), B: num(0.055) }, 'distance fog'),
+	fst('cfog3', 'clamp', { A: ref('cfograw3'), LO: num(0), HI: num(1) }, 'fog'),
+	fst('chazed3', 'mix', { A: ref('csurface3'), B: ref('csky3'), T: ref('cfog3') }, 'hazed scene'),
+	fst('cworld3', 'mix', { A: ref('csky3'), B: ref('chazed3'), T: ref('crystalhit3') }, 'paint scene'),
+	fst('ccore03', 'mul', { A: ref('crystalhit3'), B: ref('crystalkind3') }, 'crystal surface'),
+	fst('ccore3', 'pow', { A: ref('ccore03'), B: num(4) }, 'hot core'),
+	fst('crystalpaint3', 'mix', { A: ref('cworld3'), B: col('#ffffff'), T: ref('ccore3') }, 'paint crystals')
+];
+
+const crystal3DProgram = {
+	steps: [
+		...terrain3DCamera,
+		loop('crystalfield3', 48, crystalMarchBody),
+		...crystal3DPaint
+	],
+	color: ref('crystalpaint3')
+};
+
+const advancedCourses = [
+	{
+		name: '3D Camera',
+		dim: '3D',
+		section: 'learn',
+		phase: '3D Worlds',
+		tagline: 'Aim one ray through each pixel, meet a ground plane, then reveal perspective.',
+		tiers: [
+			{
+				label: 'rays',
+				newIdea: 'camera rays',
+				teaches: 'Center the screen and normalize x, y, and depth into a 3D camera ray.',
+				program: rayViewProgram
+			},
+			{
+				label: 'ground',
+				newIdea: 'ray meets plane',
+				teaches: 'Follow each ray until it reaches a flat plane and fade that plane into the horizon.',
+				program: groundPlaneProgram
+			},
+			{
+				label: 'perspective',
+				newIdea: 'world-space grid',
+				teaches: 'Use the 3D hit position to draw a checker grid that shrinks naturally with distance.',
+				program: perspectiveGridProgram
+			}
+		]
+	},
+	{
+		name: 'Raymarch',
+		dim: '3D scenes',
+		section: 'learn',
+		phase: '3D Worlds',
+		tagline: 'March through three different worlds: dunes, repeated crystal geometry, then an alpine landscape.',
+		tiers: [
+			{
+				label: 'dunes',
+				newIdea: 'height-field march',
+				teaches: 'Raise the flat plane into a smooth noise height field, then march it into a sunset dune scene.',
+				program: dune3DProgram
+			},
+			{
+				label: 'crystals',
+				newIdea: 'repeated SDF scene',
+				teaches: 'Build one faceted distance field, repeat it across x and z, then join it to the floor with min.',
+				program: crystal3DProgram
+			},
+			{
+				label: 'alpine',
+				newIdea: 'light + atmosphere',
+				teaches: 'Finish with three terrain octaves, elevation materials, slope lighting, a sun, fog, and a gliding camera.',
+				program: terrain3DProgram(true, true, true)
+			}
+		]
+	}
+];
+
+const showcase = [
+	['Neon', 'glow', 'A full four-layer luminous weave with shifting geometry and color.', legacyProgram('Neon', 'big')],
+	['Warp', 'space', 'A complete warp-speed star tunnel with depth, color separation, and gamma correction.', legacyProgram('Warp', 'big')],
+	['Metaballs', 'fields', 'Two moving energy fields that merge into one electric surface.', legacyProgram('Metaballs', 'big')],
+	['Heart', 'design', 'A beating heart with directional color, edge light, and a moving highlight.', legacyProgram('Heart', 'big')],
+	['Clouds', 'weather', 'A complete turbulent cloud system assembled from five layered fields.', legacyProgram('Clouds', 'big')],
+	['Flame', '3D', 'A fully raymarched flame shaped by rising 3D noise and accumulated glow.', legacyProgram('Flame', 'big')],
+	['Fractal', '3D', 'A fully raymarched repeated fractal world.', legacyProgram('Fractal', 'big')],
+	['Clock', 'time', 'A complete working clock with minute marks, three hands, ticking seconds, and a shaded center.', legacyProgram('Clock', 'big')]
+].map(([name, dim, tagline, program]) => ({
+	name,
+	dim,
+	section: 'showcase',
+	tagline,
+	tiers: [
+		{
+			label: 'remix',
+			teaches: 'A finished piece to open, trace, and make your own.',
+			program
+		}
+	]
+}));
+
+export const families = [
+	colorCourse,
+	patternCourse,
+	textureCourse,
+	shapeCourse,
+	motionCourse,
+	polarCourse,
+	repeatCourse,
+	...advancedCourses,
+	...showcase
+];
+
+/** "Start fresh": return to the smallest possible recipe. */
 export const freshProgram = {
-	steps: [{ id: 'a', name: 'glow', op: 'wave', args: { N: inp('time') } }],
-	color: ref('a')
+	steps: [],
+	color: col('#312e81')
 };
 
 export const potionSlug = (s) => s.toLowerCase().replace(/\s+/g, '-');
@@ -3233,4 +3799,3 @@ export function potionEntries() {
 		}))
 	);
 }
-
